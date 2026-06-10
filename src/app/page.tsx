@@ -54,11 +54,47 @@ interface MessageEntry {
   time: string;
 }
 
+const USERS = ["él", "ella"] as const;
+type UserId = typeof USERS[number];
+
+const USER_LABELS: Record<UserId, { self: string; partner: string; emoji: string }> = {
+  él: { self: "Yo", partner: "Susy", emoji: "👑" },
+  ella: { self: "Yo", partner: "Stev", emoji: "🌹" },
+};
+
 export default function Home() {
+  const [currentUser, setCurrentUser] = useState<UserId | null>(
+    () => (typeof window !== "undefined" ? (localStorage.getItem("carta_user") as UserId) : null)
+  );
+  const [loginName, setLoginName] = useState("");
+  const [loginError, setLoginError] = useState("");
+
   const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos">(
     () => (typeof window !== "undefined" && (localStorage.getItem("carta_view") as any)) || "reconciliations"
   );
   
+  const handleLogin = () => {
+    const name = loginName.trim().toLowerCase();
+    if (name === "stev" || name === "él" || name === "el") {
+      setCurrentUser("él");
+      localStorage.setItem("carta_user", "él");
+      setLoginError("");
+    } else if (name === "susy" || name === "ella") {
+      setCurrentUser("ella");
+      localStorage.setItem("carta_user", "ella");
+      setLoginError("");
+    } else {
+      setLoginError("Solo pueden entrar Stev o Susy");
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem("carta_user");
+  };
+
+  const partnerId = currentUser === "él" ? "ella" : "él";
+
   // Audio state
   const [isMuted, setIsMuted] = useState(true);
   const [audioBanner, setAudioBanner] = useState(false);
@@ -245,9 +281,7 @@ export default function Home() {
   // Messages / Poems state (Reconciliation chat)
   const [messages, setMessages] = useState<MessageEntry[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [msgAuthor, setMsgAuthor] = useState<"él" | "ella">("él");
   const [reconTab, setReconTab] = useState<"carta" | "mensajes">("carta");
-  const [notificationPerm, setNotificationPerm] = useState<NotificationPermission | null>(null);
 
   // Listen for real-time messages from Firebase
   useEffect(() => {
@@ -292,16 +326,6 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Check if mobile (notifications don't work on mobile browsers)
-  const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  // Request notification permission (only on desktop)
-  const requestNotifPermission = async () => {
-    if (!("Notification" in window) || isMobile) return;
-    const perm = await Notification.requestPermission();
-    setNotificationPerm(perm);
-  };
-
   // Send a message (real-time via Firebase)
   const sendMessage = () => {
     if (!newMessage.trim()) return;
@@ -310,7 +334,7 @@ export default function Home() {
     const entry: MessageEntry = {
       id,
       text: newMessage.trim(),
-      author: msgAuthor,
+      author: currentUser || "él",
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
@@ -325,15 +349,7 @@ export default function Home() {
       });
     setNewMessage("");
 
-    // Show notification to the partner (desktop only)
-    if (!isMobile && "Notification" in window && Notification.permission === "granted") {
-      new Notification("💌 Nuevo mensaje de " + (msgAuthor === "él" ? "Él" : "Ella"), {
-        body: entry.text.length > 100 ? entry.text.slice(0, 100) + "..." : entry.text,
-        icon: "/favicon.ico",
-      });
-    }
-
-    spawnHearts(msgAuthor === "ella" ? "gold" : "crimson");
+    spawnHearts(currentUser === "ella" ? "gold" : "crimson");
   };
 
   const deleteMessage = (id: number) => {
@@ -683,6 +699,29 @@ export default function Home() {
     }
   };
 
+  if (!currentUser) {
+    return (
+      <div className="login-screen">
+        <div className="login-card">
+          <div className="login-heart">💌</div>
+          <h1 className="login-title">Carta de Amor</h1>
+          <p className="login-sub">¿Quién eres?</p>
+          <input
+            className="login-input"
+            type="text"
+            placeholder="Escribe Stev o Susy..."
+            value={loginName}
+            onChange={e => setLoginName(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            autoFocus
+          />
+          {loginError && <p className="login-error">{loginError}</p>}
+          <button className="login-btn" onClick={handleLogin}>Entrar</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="viewport-container">
       {/* Tactile analog grain overlay */}
@@ -774,12 +813,12 @@ export default function Home() {
             </header>
 
             <div className="profile-cards-grid">
-              {/* Card 1: Él */}
+              {/* Card 1: Stev */}
               <div className="profile-card">
                 <div className="profile-avatar-wrapper">
                   <span style={{ fontSize: '2.5rem' }}>👑</span>
                 </div>
-                <h3 className="profile-name">Él</h3>
+                <h3 className="profile-name">Stev</h3>
                 <span className="profile-tag">El chico de las espinas</span>
                 <p className="profile-bio">
                   "Luchando cada día por aprender a quererte mejor, superar mis propios límites y cuidarte como te mereces."
@@ -806,12 +845,12 @@ export default function Home() {
                 <span className="profile-heart-label">Amor Real</span>
               </div>
 
-              {/* Card 2: Ella */}
+              {/* Card 2: Susy */}
               <div className="profile-card">
                 <div className="profile-avatar-wrapper">
                   <span style={{ fontSize: '2.5rem' }}>🌹</span>
                 </div>
-                <h3 className="profile-name">Ella</h3>
+                <h3 className="profile-name">Susy</h3>
                 <span className="profile-tag">Mi refugio eterno</span>
                 <p className="profile-bio">
                   "La paciencia que calma mis tormentas, el abrazo que me reconstruye y el amor incondicional que me inspira."
@@ -964,16 +1003,13 @@ export default function Home() {
               </button>
               <button
                 className={`recon-subnav-btn ${reconTab === 'mensajes' ? 'active' : ''}`}
-                onClick={() => {
-                  setReconTab('mensajes');
-                  if (!notificationPerm) requestNotifPermission();
-                }}
+                onClick={() => setReconTab('mensajes')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                 </svg>
                 Mensajes
-                {messages.some(m => m.author === (msgAuthor === "él" ? "ella" : "él")) && (
+                {currentUser && messages.some(m => m.author === partnerId) && (
                   <span className="recon-msg-dot" />
                 )}
               </button>
@@ -1119,7 +1155,11 @@ export default function Home() {
                       <div key={msg.id} className={`mensaje-bubble ${msg.author === 'ella' ? 'bubble-ella' : 'bubble-el'}`}>
                         <div className="mensaje-bubble-header">
                           <span className="mensaje-bubble-author">
-                            {msg.author === 'él' ? '👑 Él' : '🌹 Ella'}
+                            {currentUser === msg.author
+                              ? USER_LABELS[currentUser].emoji + " " + USER_LABELS[currentUser].self
+                              : (currentUser
+                                ? USER_LABELS[partnerId].emoji + " " + USER_LABELS[partnerId].partner
+                                : (msg.author === 'él' ? '👑 Él' : '🌹 Ella'))}
                           </span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className="mensaje-bubble-time">{msg.date} · {msg.time}</span>
@@ -1143,22 +1183,9 @@ export default function Home() {
 
                 {/* Compose message (at bottom like WhatsApp) */}
                 <div className="mensajes-compose">
-                  <div className="mensajes-author-toggle">
-                    <button
-                      className={`mensajes-author-btn ${msgAuthor === 'él' ? 'active-él' : ''}`}
-                      onClick={() => setMsgAuthor('él')}
-                    >
-                      👑 Él escribe
-                    </button>
-                    <button
-                      className={`mensajes-author-btn ${msgAuthor === 'ella' ? 'active-ella' : ''}`}
-                      onClick={() => {
-                        setMsgAuthor('ella');
-                        if (!notificationPerm) requestNotifPermission();
-                      }}
-                    >
-                      🌹 Ella escribe
-                    </button>
+                  <div className="mensajes-compose-as">
+                    {currentUser === "él" ? "👑" : "🌹"} Escribiendo como {currentUser === "él" ? "Stev" : "Susy"}
+                    <button className="mensajes-logout-btn" onClick={handleLogout}>Salir</button>
                   </div>
                   <textarea
                     className="mensajes-textarea"
@@ -1258,19 +1285,19 @@ export default function Home() {
                 <h3 className="diario-form-title">Capturar un Momento</h3>
 
                 <div className="diario-form-group">
-                  <label className="diario-form-label">¿Quién eres?</label>
+                  <label className="diario-form-label">¿Quién publica?</label>
                   <div className="diario-form-author-toggle">
                     <button
                       className={`diario-author-btn ${formAuthor === 'él' ? 'active-él' : ''}`}
                       onClick={() => setFormAuthor('él')}
                     >
-                      👑 Él
+                      👑 Stev
                     </button>
                     <button
                       className={`diario-author-btn ${formAuthor === 'ella' ? 'active-ella' : ''}`}
                       onClick={() => setFormAuthor('ella')}
                     >
-                      🌹 Ella
+                      🌹 Susy
                     </button>
                   </div>
                 </div>
@@ -1360,7 +1387,7 @@ export default function Home() {
                         </span>
                         <div className="memoria-author-info">
                           <span className="memoria-author-name">
-                            {memory.author === 'él' ? 'Él' : 'Ella'}
+                            {memory.author === 'él' ? 'Stev' : 'Susy'}
                           </span>
                           <span className="memoria-date">
                             {memory.date} · {memory.time}
@@ -1390,7 +1417,7 @@ export default function Home() {
 
                     <div className="memoria-footer-bar">
                       <span className={`memoria-badge ${memory.author === 'ella' ? 'badge-ella' : 'badge-el'}`}>
-                        {memory.author === 'él' ? '👑 Publicado por Él' : '🌹 Publicado por Ella'}
+                        {memory.author === 'él' ? '👑 Publicado por Stev' : '🌹 Publicado por Susy'}
                       </span>
                     </div>
                   </div>
