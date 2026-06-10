@@ -43,6 +43,14 @@ interface MemoryEntry {
   time: string;
 }
 
+interface MessageEntry {
+  id: number;
+  text: string;
+  author: "él" | "ella";
+  date: string;
+  time: string;
+}
+
 export default function Home() {
   const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos">("reconciliations");
   
@@ -123,6 +131,65 @@ export default function Home() {
 
   const deleteMemory = (id: number) => {
     setMemories(prev => prev.filter(m => m.id !== id));
+  };
+
+  // Messages / Poems state (Reconciliation chat)
+  const [messages, setMessages] = useState<MessageEntry[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [msgAuthor, setMsgAuthor] = useState<"él" | "ella">("él");
+  const [reconTab, setReconTab] = useState<"carta" | "mensajes">("carta");
+  const [notificationPerm, setNotificationPerm] = useState<NotificationPermission | null>(null);
+
+  // Load messages from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("carta_messages");
+    if (stored) {
+      try {
+        setMessages(JSON.parse(stored));
+      } catch {}
+    }
+  }, []);
+
+  // Save messages to localStorage
+  useEffect(() => {
+    localStorage.setItem("carta_messages", JSON.stringify(messages));
+  }, [messages]);
+
+  // Request notification permission
+  const requestNotifPermission = async () => {
+    if (!("Notification" in window)) return;
+    const perm = await Notification.requestPermission();
+    setNotificationPerm(perm);
+  };
+
+  // Send a message
+  const sendMessage = () => {
+    if (!newMessage.trim()) return;
+    const now = new Date();
+    const entry: MessageEntry = {
+      id: Date.now(),
+      text: newMessage.trim(),
+      author: msgAuthor,
+      date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
+      time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMessages(prev => [entry, ...prev]);
+    setNewMessage("");
+
+    // Show notification to the partner
+    if ("Notification" in window && Notification.permission === "granted") {
+      const partnerName = msgAuthor === "él" ? "Ella" : "Él";
+      new Notification("💌 Nuevo mensaje de " + (msgAuthor === "él" ? "Él" : "Ella"), {
+        body: entry.text.length > 100 ? entry.text.slice(0, 100) + "..." : entry.text,
+        icon: "/favicon.ico",
+      });
+    }
+
+    spawnHearts(msgAuthor === "ella" ? "gold" : "crimson");
+  };
+
+  const deleteMessage = (id: number) => {
+    setMessages(prev => prev.filter(m => m.id !== id));
   };
 
   // Couple time delta state
@@ -735,115 +802,241 @@ export default function Home() {
           </div>
         )}
 
-        {/* VIEW 3: RECONCILIACIONES (THE APOLOGY LETTER - INTEGRITY PERSISTED) */}
+        {/* VIEW 3: RECONCILIACIONES - CARTA + MENSAJES */}
         {view === "reconciliations" && (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {/* 3D Sealed Envelope */}
-            <div className={`envelope-wrapper ${isOpen ? 'open-anim' : ''} ${envelopeFading ? 'hidden' : ''}`}>
-              <div className="envelope" onClick={handleOpenEnvelope}>
-                <div className="envelope-flap-left" />
-                <div className="envelope-flap-right" />
-                <div className="envelope-flap-bottom" />
-                <div className="envelope-flap-top" />
-                
-                <div className="wax-seal-container">
-                  <div className="wax-seal">
-                    <div className="wax-seal-pulse" />
-                    <svg width="24" height="24" viewBox="0 0 24 24">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                  </div>
-                  <span className="seal-label">Toca para abrir</span>
-                </div>
-              </div>
+            {/* Sub-navigation: Carta | Mensajes */}
+            <div className="recon-subnav">
+              <button
+                className={`recon-subnav-btn ${reconTab === 'carta' ? 'active' : ''}`}
+                onClick={() => setReconTab('carta')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/>
+                </svg>
+                Carta
+              </button>
+              <button
+                className={`recon-subnav-btn ${reconTab === 'mensajes' ? 'active' : ''}`}
+                onClick={() => {
+                  setReconTab('mensajes');
+                  if (!notificationPerm) requestNotifPermission();
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                </svg>
+                Mensajes
+                {messages.some(m => m.author === (msgAuthor === "él" ? "ella" : "él")) && (
+                  <span className="recon-msg-dot" />
+                )}
+              </button>
             </div>
 
-            {/* Letter Card */}
-            <div className={`letter-card-container ${letterVisible ? 'visible' : ''} ${letterActive ? 'active' : ''}`}>
-              <article className="letter-card">
-                <header>
-                  <h1 className="letter-title">Mi Amor...</h1>
-                  <p className="letter-subtitle">Desde el fondo de mi alma</p>
+            {/* TAB: CARTA (existing letter experience) */}
+            {reconTab === "carta" && (
+              <>
+                {/* 3D Sealed Envelope */}
+                <div className={`envelope-wrapper ${isOpen ? 'open-anim' : ''} ${envelopeFading ? 'hidden' : ''}`}>
+                  <div className="envelope" onClick={handleOpenEnvelope}>
+                    <div className="envelope-flap-left" />
+                    <div className="envelope-flap-right" />
+                    <div className="envelope-flap-bottom" />
+                    <div className="envelope-flap-top" />
+                    
+                    <div className="wax-seal-container">
+                      <div className="wax-seal">
+                        <div className="wax-seal-pulse" />
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        </svg>
+                      </div>
+                      <span className="seal-label">Toca para abrir</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Letter Card */}
+                <div className={`letter-card-container ${letterVisible ? 'visible' : ''} ${letterActive ? 'active' : ''}`}>
+                  <article className="letter-card">
+                    <header>
+                      <h1 className="letter-title">Mi Amor...</h1>
+                      <p className="letter-subtitle">Desde el fondo de mi alma</p>
+                    </header>
+
+                    <div className="letter-content">
+                      {/* Paragraph 1 */}
+                      <p className={`letter-paragraph ${paraCount >= 1 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
+                        Perdón amor por todo, ya no sé cómo evitar hacerte sentir mal, <span className="highlight-red">más te amo más te hago daño 😔</span>, siento que soy una rama cn espinas y es muy doloroso soportarme lo sé amor ni yo me soporto ni yo me entiendo aveces.
+                      </p>
+
+                      {/* Poetic SVG drawing of the thorny branch */}
+                      {paraCount >= 1 && (
+                        <div className="thorny-decor-container" style={{ animation: 'paragraph-reveal 1.5s ease forwards' }}>
+                          <svg className="thorny-svg" viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20,60 Q100,20 200,70 T380,45" stroke="#251214" strokeWidth="3" strokeLinecap="round"/>
+                            <path d="M90,38 L85,25 L98,35 Z" fill="#800a0d" />
+                            <path d="M150,50 L158,62 L146,55 Z" fill="#800a0d" />
+                            <path d="M220,70 L216,84 L228,75 Z" fill="#800a0d" />
+                            <path d="M280,55 L285,42 L275,50 Z" fill="#800a0d" />
+                            <path d="M330,48 L338,60 L326,52 Z" fill="#800a0d" />
+                            <path d="M20,60 Q100,20 200,70 T380,45" stroke="#a91015" strokeWidth="1.2" strokeLinecap="round" opacity="0.65"/>
+                            
+                            <g transform="translate(378, 43)">
+                              <path d="M0,0 C-6,-8 -12,-4 -12,4 C-12,12 0,20 0,22 C0,22 12,12 12,4 C12,-4 6,-8 0,0 Z" fill="url(#roseGlow)"/>
+                              <circle cx="0" cy="4" r="1.5" fill="#fff" opacity="0.7"/>
+                            </g>
+                            
+                            <defs>
+                              <radialGradient id="roseGlow" cx="0%" cy="0%" r="100%">
+                                <stop offset="0%" stopColor="#ff4d52" />
+                                <stop offset="70%" stopColor="#a91015" />
+                                <stop offset="100%" stopColor="#300103" />
+                              </radialGradient>
+                            </defs>
+                          </svg>
+                        </div>
+                      )}
+
+                      {/* Paragraph 2 */}
+                      <p className={`letter-paragraph ${paraCount >= 2 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
+                        Siento que te hago peor y lo siento y perdón también 😔, creo q te cansarás de mi por todo este lío 🥺😔, no se q me pasa, cuanto más quiero cuidarte más te hago sentir mal, peor...
+                      </p>
+
+                      {/* Paragraph 3 - Highlighted quote block */}
+                      <div className={`letter-paragraph ${paraCount >= 3 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
+                        <blockquote className="highlight-quote">
+                          "SIENTO Q NO ESTOY PARA UNA RELACIÓN"
+                          <span style={{ display: 'block', fontSize: '0.78rem', marginTop: '8px', opacity: 0.8, fontWeight: 400, fontStyle: 'normal', fontFamily: 'var(--font-sans)', letterSpacing: '0.05em' }}>
+                            (como tú misma lo dijiste y piensas)
+                          </span>
+                        </blockquote>
+                        <p style={{ textAlign: 'justify', opacity: 0.95 }}>
+                          y no sé cómo hacer q eso no sea así, te amo mucho enserio pero yo no sé si estoy haciendo bien hacía ti haciéndote esto, mucho te pido lo se 🥺😞.
+                        </p>
+                      </div>
+
+                      {/* Paragraph 4 */}
+                      <p className={`letter-paragraph ${paraCount >= 4 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
+                        Espero q no tengas rencor hacia mi amor 😞, espero q no ye arrepientas de mi l tal vez si cambies de opinión 🥺🫂 <span className="highlight-red">te amo mucho y perdón mi amor 😞😞🥺🫂</span>.
+                      </p>
+                    </div>
+
+                    {paraCount >= 4 && (
+                      <footer className="letter-footer" style={{ animation: 'paragraph-reveal 1.5s ease forwards' }}>
+                        <div style={{ width: '40px', height: '1px', backgroundColor: 'rgba(169, 16, 21, 0.4)', margin: '12px 0' }} />
+                        <span className="signature">Siempre Tuyo</span>
+                      </footer>
+                    )}
+
+                    <div className={`interactive-section ${buttonsVisible ? 'visible' : ''}`}>
+                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.2em' }}>Responder con amor</span>
+                      <div className="action-buttons-group">
+                        <button className="btn-primary" onClick={() => handleAction("hug")}>
+                          <span style={{ fontSize: '1.1rem' }}>🫂</span> UN ABRAZO VIRTUAL
+                        </button>
+                        <button className="btn-secondary" onClick={() => handleAction("understand")}>
+                          <span style={{ fontSize: '1.1rem' }}>❤️</span> TE ENTIENDO, AMOR
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </>
+            )}
+
+            {/* TAB: MENSAJES (bidirectional poem/message system) */}
+            {reconTab === "mensajes" && (
+              <div className="mensajes-container">
+                <header className="mensajes-header">
+                  <span className="mesarios-subtitle">Nuestras Palabras</span>
+                  <h2 className="letter-title" style={{ margin: 0 }}>Mensajes y Poemas</h2>
+                  <p className="diario-subheader">
+                    Escríbanse lo que sienten, dedíquense poemas, guarden cada palabra...
+                  </p>
                 </header>
 
-                <div className="letter-content">
-                  {/* Paragraph 1 */}
-                  <p className={`letter-paragraph ${paraCount >= 1 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
-                    Perdón amor por todo, ya no sé cómo evitar hacerte sentir mal, <span className="highlight-red">más te amo más te hago daño 😔</span>, siento que soy una rama cn espinas y es muy doloroso soportarme lo sé amor ni yo me soporto ni yo me entiendo aveces.
-                  </p>
-
-                  {/* Poetic SVG drawing of the thorny branch */}
-                  {paraCount >= 1 && (
-                    <div className="thorny-decor-container" style={{ animation: 'paragraph-reveal 1.5s ease forwards' }}>
-                      <svg className="thorny-svg" viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20,60 Q100,20 200,70 T380,45" stroke="#251214" strokeWidth="3" strokeLinecap="round"/>
-                        <path d="M90,38 L85,25 L98,35 Z" fill="#800a0d" />
-                        <path d="M150,50 L158,62 L146,55 Z" fill="#800a0d" />
-                        <path d="M220,70 L216,84 L228,75 Z" fill="#800a0d" />
-                        <path d="M280,55 L285,42 L275,50 Z" fill="#800a0d" />
-                        <path d="M330,48 L338,60 L326,52 Z" fill="#800a0d" />
-                        <path d="M20,60 Q100,20 200,70 T380,45" stroke="#a91015" strokeWidth="1.2" strokeLinecap="round" opacity="0.65"/>
-                        
-                        <g transform="translate(378, 43)">
-                          <path d="M0,0 C-6,-8 -12,-4 -12,4 C-12,12 0,20 0,22 C0,22 12,12 12,4 C12,-4 6,-8 0,0 Z" fill="url(#roseGlow)"/>
-                          <circle cx="0" cy="4" r="1.5" fill="#fff" opacity="0.7"/>
-                        </g>
-                        
-                        <defs>
-                          <radialGradient id="roseGlow" cx="0%" cy="0%" r="100%">
-                            <stop offset="0%" stopColor="#ff4d52" />
-                            <stop offset="70%" stopColor="#a91015" />
-                            <stop offset="100%" stopColor="#300103" />
-                          </radialGradient>
-                        </defs>
+                {/* Compose message */}
+                <div className="mensajes-compose">
+                  <div className="mensajes-author-toggle">
+                    <button
+                      className={`mensajes-author-btn ${msgAuthor === 'él' ? 'active-él' : ''}`}
+                      onClick={() => setMsgAuthor('él')}
+                    >
+                      👑 Él escribe
+                    </button>
+                    <button
+                      className={`mensajes-author-btn ${msgAuthor === 'ella' ? 'active-ella' : ''}`}
+                      onClick={() => {
+                        setMsgAuthor('ella');
+                        if (!notificationPerm) requestNotifPermission();
+                      }}
+                    >
+                      🌹 Ella escribe
+                    </button>
+                  </div>
+                  <textarea
+                    className="mensajes-textarea"
+                    placeholder="Escribe un poema, un mensaje, lo que quieras decirle..."
+                    value={newMessage}
+                    onChange={e => setNewMessage(e.target.value)}
+                    rows={4}
+                    maxLength={1000}
+                  />
+                  <div className="mensajes-compose-footer">
+                    <span className="mensajes-count">{newMessage.length}/1000</span>
+                    <button
+                      className="mensajes-send-btn"
+                      onClick={sendMessage}
+                      disabled={!newMessage.trim()}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                       </svg>
+                      ENVIAR
+                    </button>
+                  </div>
+                </div>
+
+                {/* Messages feed */}
+                <div className="mensajes-feed">
+                  {messages.length === 0 ? (
+                    <div className="mensajes-empty">
+                      <div className="mensajes-empty-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
+                          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                      </div>
+                      <p className="mensajes-empty-text">Aún no hay mensajes...</p>
+                      <p className="mensajes-empty-sub">El primer poema, la primera palabra, comienza aquí.</p>
                     </div>
+                  ) : (
+                    messages.map((msg) => (
+                      <div key={msg.id} className={`mensaje-bubble ${msg.author === 'ella' ? 'bubble-ella' : 'bubble-el'}`}>
+                        <div className="mensaje-bubble-header">
+                          <span className="mensaje-bubble-author">
+                            {msg.author === 'él' ? '👑 Él' : '🌹 Ella'}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="mensaje-bubble-time">{msg.date} · {msg.time}</span>
+                            <button
+                              className="mensaje-delete-btn"
+                              onClick={() => deleteMessage(msg.id)}
+                              title="Eliminar"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <p className="mensaje-bubble-text">{msg.text}</p>
+                      </div>
+                    ))
                   )}
-
-                  {/* Paragraph 2 */}
-                  <p className={`letter-paragraph ${paraCount >= 2 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
-                    Siento que te hago peor y lo siento y perdón también 😔, creo q te cansarás de mi por todo este lío 🥺😔, no se q me pasa, cuanto más quiero cuidarte más te hago sentir mal, peor...
-                  </p>
-
-                  {/* Paragraph 3 - Highlighted quote block */}
-                  <div className={`letter-paragraph ${paraCount >= 3 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
-                    <blockquote className="highlight-quote">
-                      "SIENTO Q NO ESTOY PARA UNA RELACIÓN"
-                      <span style={{ display: 'block', fontSize: '0.78rem', marginTop: '8px', opacity: 0.8, fontWeight: 400, fontStyle: 'normal', fontFamily: 'var(--font-sans)', letterSpacing: '0.05em' }}>
-                        (como tú misma lo dijiste y piensas)
-                      </span>
-                    </blockquote>
-                    <p style={{ textAlign: 'justify', opacity: 0.95 }}>
-                      y no sé cómo hacer q eso no sea así, te amo mucho enserio pero yo no sé si estoy haciendo bien hacía ti haciéndote esto, mucho te pido lo se 🥺😞.
-                    </p>
-                  </div>
-
-                  {/* Paragraph 4 */}
-                  <p className={`letter-paragraph ${paraCount >= 4 ? 'paragraph-visible' : 'paragraph-hidden'}`}>
-                    Espero q no tengas rencor hacia mi amor 😞, espero q no ye arrepientas de mi l tal vez si cambies de opinión 🥺🫂 <span className="highlight-red">te amo mucho y perdón mi amor 😞😞🥺🫂</span>.
-                  </p>
                 </div>
-
-                {paraCount >= 4 && (
-                  <footer className="letter-footer" style={{ animation: 'paragraph-reveal 1.5s ease forwards' }}>
-                    <div style={{ width: '40px', height: '1px', backgroundColor: 'rgba(169, 16, 21, 0.4)', margin: '12px 0' }} />
-                    <span className="signature">Siempre Tuyo</span>
-                  </footer>
-                )}
-
-                <div className={`interactive-section ${buttonsVisible ? 'visible' : ''}`}>
-                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.2em' }}>Responder con amor</span>
-                  <div className="action-buttons-group">
-                    <button className="btn-primary" onClick={() => handleAction("hug")}>
-                      <span style={{ fontSize: '1.1rem' }}>🫂</span> UN ABRAZO VIRTUAL
-                    </button>
-                    <button className="btn-secondary" onClick={() => handleAction("understand")}>
-                      <span style={{ fontSize: '1.1rem' }}>❤️</span> TE ENTIENDO, AMOR
-                    </button>
-                  </div>
-                </div>
-              </article>
-            </div>
+              </div>
+            )}
           </div>
         )}
 

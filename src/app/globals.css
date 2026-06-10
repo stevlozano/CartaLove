@@ -2138,3 +2138,328 @@ html, body {
     font-size: 1rem;
   }
 }
+
+/* ==========================================================================
+   6. RECONCILIATION SUBNAV + MESSAGES SYSTEM
+   ========================================================================== */
+
+.recon-subnav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: rgba(14, 7, 7, 0.5);
+  border: 1px solid rgba(169, 16, 21, 0.2);
+  border-radius: 16px;
+  padding: 6px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.recon-subnav-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  text-transform: uppercase;
+  position: relative;
+}
+
+.recon-subnav-btn:hover {
+  color: var(--accent-gold);
+}
+
+.recon-subnav-btn.active {
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  color: var(--text-primary);
+  box-shadow: 0 4px 15px rgba(169, 16, 21, 0.4);
+}
+
+.recon-msg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4d52;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* Mensajes Container */
+.mensajes-container {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.mensajes-header {
+  text-align: center;
+}
+
+/* Compose Area */
+.mensajes-compose {
+  width: 100%;
+  background: rgba(14, 7, 7, 0.6);
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mensajes-author-toggle {
+  display: flex;
+  gap: 12px;
+}
+
+.mensajes-author-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(169, 16, 21, 0.3);
+  background: rgba(14, 7, 7, 0.5);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.mensajes-author-btn.active-él {
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  border-color: var(--primary-glow);
+  color: var(--text-primary);
+  box-shadow: 0 4px 15px rgba(169, 16, 21, 0.4);
+}
+
+.mensajes-author-btn.active-ella {
+  background: linear-gradient(135deg, #d4af37 0%, #7e6314 100%);
+  border-color: var(--gold-metallic);
+  color: #0c0606;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+  font-weight: 700;
+}
+
+.mensajes-author-btn:hover {
+  transform: translateY(-2px);
+}
+
+.mensajes-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.7;
+  resize: vertical;
+  min-height: 100px;
+  transition: all 0.3s;
+  outline: none;
+}
+
+.mensajes-textarea:focus {
+  border-color: var(--primary-glow);
+  box-shadow: 0 0 12px rgba(169, 16, 21, 0.2);
+}
+
+.mensajes-textarea::placeholder {
+  color: rgba(163, 140, 140, 0.5);
+  font-style: italic;
+}
+
+.mensajes-compose-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mensajes-count {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.mensajes-send-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 30px;
+  border: none;
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 15px rgba(169, 16, 21, 0.3);
+}
+
+.mensajes-send-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(169, 16, 21, 0.5);
+}
+
+.mensajes-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Messages Feed */
+.mensajes-feed {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.mensajes-empty {
+  text-align: center;
+  padding: 50px 20px;
+  background: rgba(14, 7, 7, 0.3);
+  border: 1px solid rgba(169, 16, 21, 0.15);
+  border-radius: 16px;
+}
+
+.mensajes-empty-icon {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+
+.mensajes-empty-text {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  color: var(--accent-gold);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.mensajes-empty-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Individual Message Bubble */
+.mensaje-bubble {
+  padding: 18px 22px;
+  border-radius: 16px;
+  animation: mensaje-fade-in 0.5s ease forwards;
+  position: relative;
+}
+
+@keyframes mensaje-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bubble-el {
+  background: linear-gradient(135deg, rgba(169, 16, 21, 0.12) 0%, rgba(10, 3, 4, 0.6) 100%);
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  margin-right: 20px;
+}
+
+.bubble-ella {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(10, 3, 4, 0.6) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  margin-left: 20px;
+}
+
+.mensaje-bubble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mensaje-bubble-author {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--accent-gold);
+}
+
+.bubble-ella .mensaje-bubble-author {
+  color: var(--gold-metallic);
+}
+
+.mensaje-bubble-time {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.mensaje-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+}
+
+.mensaje-bubble:hover .mensaje-delete-btn {
+  opacity: 1;
+}
+
+.mensaje-delete-btn:hover {
+  color: #ff4d52;
+  background: rgba(255, 77, 82, 0.1);
+}
+
+.mensaje-bubble-text {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.75;
+  color: var(--text-primary);
+  opacity: 0.92;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  .mensajes-compose {
+    padding: 16px;
+  }
+  .mensaje-bubble {
+    padding: 14px 16px;
+  }
+  .mensaje-bubble-text {
+    font-size: 1rem;
+  }
+  .recon-subnav {
+    max-width: 100%;
+  }
+  .recon-subnav-btn {
+    font-size: 0.65rem;
+    padding: 8px 12px;
+  }
+}
