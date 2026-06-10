@@ -54,6 +54,18 @@ interface MessageEntry {
   time: string;
 }
 
+interface OutingEntry {
+  id: number;
+  proposer: "él" | "ella";
+  title: string;
+  description: string;
+  location: string;
+  when: string;
+  status: "pending" | "chosen";
+  date: string;
+  time: string;
+}
+
 const USERS = ["él", "ella"] as const;
 type UserId = typeof USERS[number];
 
@@ -69,7 +81,7 @@ export default function Home() {
   const [loginName, setLoginName] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos">(
+  const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos" | "salidas">(
     () => (typeof window !== "undefined" && (localStorage.getItem("carta_view") as any)) || "reconciliations"
   );
   
@@ -356,6 +368,97 @@ export default function Home() {
     remove(child(ref(db, 'messages'), String(id)))
       .catch((err) => console.error("Firebase remove error:", err));
   };
+
+  // Notify partner via browser notification (desktop only)
+  const notifyPartner = (title: string, body: string) => {
+    const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile && "Notification" in window && Notification.permission === "granted") {
+      new Notification(title, { body, icon: "/favicon.ico" });
+    }
+  };
+
+  // Salidas (Outings) state
+  const [outings, setOutings] = useState<OutingEntry[]>([]);
+  const [newOutingTitle, setNewOutingTitle] = useState("");
+  const [newOutingDesc, setNewOutingDesc] = useState("");
+  const [newOutingLocation, setNewOutingLocation] = useState("");
+  const [newOutingWhen, setNewOutingWhen] = useState("");
+
+  // Listen for real-time outings from Firebase
+  useEffect(() => {
+    const outingsRef = ref(db, 'outings');
+    const unsubscribe = onValue(outingsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const list = Object.keys(data).map((key) => ({
+          ...data[key],
+        })) as OutingEntry[];
+        list.sort((a, b) => a.id - b.id);
+        setOutings(list);
+      } else {
+        setOutings([]);
+      }
+    }, (err) => {
+      console.error("Firebase outings listener error:", err);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Propose a new outing
+  const proposeOuting = () => {
+    if (!newOutingTitle.trim()) return;
+    const now = new Date();
+    const id = Date.now();
+    const entry: OutingEntry = {
+      id,
+      proposer: currentUser || "él",
+      title: newOutingTitle.trim(),
+      description: newOutingDesc.trim(),
+      location: newOutingLocation.trim(),
+      when: newOutingWhen.trim(),
+      status: "pending",
+      date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
+      time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+    };
+    set(child(ref(db, 'outings'), String(id)), entry)
+      .then(() => {
+        setToastMsg("");
+        notifyPartner("💡 Nueva salida propuesta", entry.title);
+      })
+      .catch((err) => {
+        console.error("Firebase outing error:", err);
+        setToastMsg("Error al crear salida. Revisa reglas de Firebase DB.");
+        setTimeout(() => setToastMsg(""), 5000);
+      });
+    setNewOutingTitle("");
+    setNewOutingDesc("");
+    setNewOutingLocation("");
+    setNewOutingWhen("");
+    spawnHearts(currentUser === "ella" ? "gold" : "crimson");
+  };
+
+  // Choose an outing (ella can mark as chosen)
+  const chooseOuting = (id: number) => {
+    set(child(ref(db, 'outings'), String(id)), { ...outings.find(o => o.id === id), status: "chosen" })
+      .then(() => {
+        setToastMsg("🎉 Salida elegida");
+        setTimeout(() => setToastMsg(""), 3000);
+        notifyPartner("🎉 Salida elegida", "Una salida ha sido seleccionada. ¡A prepararse!");
+      })
+      .catch((err) => console.error("Firebase choose outing error:", err));
+  };
+
+  const deleteOuting = (id: number) => {
+    remove(child(ref(db, 'outings'), String(id)))
+      .catch((err) => console.error("Firebase remove outing error:", err));
+  };
+
+  // Request notification permission on first user interaction
+  useEffect(() => {
+    if (currentUser && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, [currentUser]);
 
   // Couple time delta state
   const [timeTogether, setTimeTogether] = useState<TimeDelta>({
@@ -777,6 +880,13 @@ export default function Home() {
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 6h2v2h-2zm0 4h2v2h-2z"/></svg>
           <span className="nav-label">Aniversario</span>
+        </button>
+        <button 
+          className={`nav-item ${view === 'salidas' ? 'active' : ''}`} 
+          onClick={() => handleViewChange('salidas')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span className="nav-label">Salidas</span>
         </button>
         <button 
           className={`nav-item ${view === 'photos' ? 'active' : ''}`} 
@@ -1267,7 +1377,124 @@ export default function Home() {
           </div>
         )}
 
-        {/* VIEW 5: SHARED JOURNAL / MEMORY WALL (DIARIO COMPARTIDO) */}
+        {/* VIEW 5: SALIDAS (DATE PLANNING) */}
+        {view === "salidas" && (
+          <div className="salidas-container">
+            <header className="salidas-header">
+              <span className="mesarios-subtitle">Plan de Salidas</span>
+              <h2 className="letter-title" style={{ margin: 0 }}>¿A dónde vamos?</h2>
+              <p className="salidas-subheader">
+                {currentUser === "ella"
+                  ? "Propón una cita o elige entre las ideas. Tú decides 💕"
+                  : "Propón una cita y espera a que ella elija 💕"}
+              </p>
+            </header>
+
+            {/* Propose new outing */}
+            <div className="salidas-form">
+              <div className="salidas-form-row">
+                <input
+                  className="salidas-input"
+                  placeholder="¿Qué haremos?"
+                  value={newOutingTitle}
+                  onChange={e => setNewOutingTitle(e.target.value)}
+                  maxLength={80}
+                />
+                <input
+                  className="salidas-input salidas-input-sm"
+                  placeholder="Lugar"
+                  value={newOutingLocation}
+                  onChange={e => setNewOutingLocation(e.target.value)}
+                  maxLength={60}
+                />
+              </div>
+              <textarea
+                className="salidas-textarea"
+                placeholder="Describe la idea..."
+                value={newOutingDesc}
+                onChange={e => setNewOutingDesc(e.target.value)}
+                rows={2}
+                maxLength={300}
+              />
+              <div className="salidas-form-row">
+                <input
+                  className="salidas-input"
+                  placeholder="¿Cuándo? (ej: este sábado 7pm)"
+                  value={newOutingWhen}
+                  onChange={e => setNewOutingWhen(e.target.value)}
+                  maxLength={60}
+                />
+                <button className="salidas-submit-btn" onClick={proposeOuting}>
+                  Proponer
+                </button>
+              </div>
+            </div>
+
+            {/* Outings list */}
+            <div className="salidas-list">
+              {outings.length === 0 ? (
+                <div className="salidas-empty">
+                  <span className="salidas-empty-icon">🗺️</span>
+                  <p className="salidas-empty-text">Aún no hay salidas propuestas. ¡Sé el primero!</p>
+                </div>
+              ) : (
+                outings.map((outing) => {
+                  const isChosen = outing.status === "chosen";
+                  const isProposer = outing.proposer === currentUser;
+                  // ella can choose, stev can't
+                  const canChoose = currentUser === "ella" && !isChosen && outing.proposer !== "ella";
+                  return (
+                    <div
+                      key={outing.id}
+                      className={`salidas-card ${isChosen ? 'salidas-chosen' : ''}`}
+                    >
+                      {isChosen && <div className="salidas-chosen-badge">✨ Elegida</div>}
+                      <div className="salidas-card-header">
+                        <span className="salidas-proposer">
+                          {outing.proposer === "él" ? "👑" : "🌹"}{" "}
+                          {outing.proposer === "él" ? "Stev" : "Susy"}
+                        </span>
+                        <span className="salidas-date">{outing.date} · {outing.time}</span>
+                      </div>
+                      <h3 className="salidas-card-title">{outing.title}</h3>
+                      {outing.description && (
+                        <p className="salidas-card-desc">{outing.description}</p>
+                      )}
+                      <div className="salidas-card-details">
+                        {outing.location && (
+                          <span className="salidas-detail">📍 {outing.location}</span>
+                        )}
+                        {outing.when && (
+                          <span className="salidas-detail">🕐 {outing.when}</span>
+                        )}
+                      </div>
+                      <div className="salidas-card-actions">
+                        {canChoose && (
+                          <button
+                            className="salidas-choose-btn"
+                            onClick={() => chooseOuting(outing.id)}
+                          >
+                            Elegir esta 💕
+                          </button>
+                        )}
+                        {isProposer && (
+                          <button
+                            className="salidas-delete-btn"
+                            onClick={() => deleteOuting(outing.id)}
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 6: SHARED JOURNAL / MEMORY WALL (DIARIO COMPARTIDO) */}
         {view === "photos" && (
           <div className="diario-container">
             <header className="diario-header">

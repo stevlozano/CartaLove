@@ -2713,3 +2713,244 @@ html, body {
   border-color: var(--primary-glow);
   color: var(--primary-glow);
 }
+
+/* Salidas (Outings) Section */
+.salidas-container {
+  width: 100%;
+  max-width: 550px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.salidas-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.salidas-subheader {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+
+.salidas-form {
+  background: var(--bg-card);
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.salidas-form-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.salidas-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  background: rgba(0,0,0,0.3);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.salidas-input:focus {
+  border-color: var(--primary-glow);
+}
+
+.salidas-input-sm {
+  max-width: 140px;
+}
+
+.salidas-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  background: rgba(0,0,0,0.3);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.salidas-textarea:focus {
+  border-color: var(--primary-glow);
+}
+
+.salidas-submit-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.3s;
+}
+
+.salidas-submit-btn:hover {
+  filter: brightness(1.2);
+}
+
+.salidas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.salidas-empty {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.salidas-empty-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.salidas-empty-text {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.salidas-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(169, 16, 21, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.salidas-chosen {
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+.salidas-chosen-badge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  background: linear-gradient(135deg, #ffd700, #b8960f);
+  color: #000;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.salidas-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.salidas-proposer {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.salidas-date {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.salidas-card-title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--accent-gold);
+  margin: 0 0 6px;
+}
+
+.salidas-card-desc {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 0 0 10px;
+}
+
+.salidas-card-details {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.salidas-detail {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.salidas-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.salidas-choose-btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ffd700 0%, #b8960f 100%);
+  color: #000;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.salidas-choose-btn:hover {
+  filter: brightness(1.2);
+}
+
+.salidas-delete-btn {
+  padding: 7px 14px;
+  border: 1px solid rgba(169, 16, 21, 0.3);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.salidas-delete-btn:hover {
+  border-color: var(--primary-glow);
+  color: var(--primary-glow);
+}
