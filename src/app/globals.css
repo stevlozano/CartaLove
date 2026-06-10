@@ -1662,14 +1662,14 @@ html, body {
   transform: translateY(0);
 }
 
-/* Form Overlay */
+/* Form Overlay - Enhanced Visibility */
 .diario-form-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(4, 2, 2, 0.88);
+  background: rgba(0, 0, 0, 0.92);
   z-index: 2000;
   display: flex;
   justify-content: center;
@@ -1677,7 +1677,8 @@ html, body {
   opacity: 0;
   pointer-events: none;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   padding: 20px;
 }
 
@@ -1688,15 +1689,18 @@ html, body {
 
 .diario-form-card {
   width: 100%;
-  max-width: 520px;
-  background: linear-gradient(135deg, #160809 0%, #0a0304 100%);
-  border: 1px solid rgba(169, 16, 21, 0.35);
-  border-radius: 16px;
-  padding: 40px;
+  max-width: 540px;
+  background: linear-gradient(145deg, #1e0a0b 0%, #0d0304 100%);
+  border: 1px solid rgba(229, 62, 62, 0.45);
+  border-radius: 20px;
+  padding: 44px 40px 36px;
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.95);
+  box-shadow: 
+    0 50px 100px rgba(0, 0, 0, 0.95),
+    0 0 60px rgba(169, 16, 21, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transform: scale(0.92) translateY(20px);
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1705,23 +1709,32 @@ html, body {
   transform: scale(1) translateY(0);
 }
 
+.diario-form-card::-webkit-scrollbar {
+  width: 4px;
+}
+
 .diario-form-close {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: none;
-  border: none;
+  background: rgba(169, 16, 21, 0.15);
+  border: 1px solid rgba(169, 16, 21, 0.2);
   color: var(--text-muted);
-  font-size: 1.2rem;
+  font-size: 1rem;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
 }
 
 .diario-form-close:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(169, 16, 21, 0.3);
+  border-color: var(--primary-glow);
 }
 
 .diario-form-title {
@@ -1731,6 +1744,7 @@ html, body {
   text-align: center;
   margin-bottom: 28px;
   font-style: italic;
+  text-shadow: 0 2px 15px rgba(169, 16, 21, 0.15);
 }
 
 .diario-form-group {
@@ -1742,9 +1756,9 @@ html, body {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: var(--text-muted);
+  color: rgba(252, 218, 218, 0.7);
   margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .diario-form-author-toggle {
@@ -1754,10 +1768,10 @@ html, body {
 
 .diario-author-btn {
   flex: 1;
-  padding: 10px 16px;
+  padding: 12px 16px;
   border-radius: 12px;
   border: 1px solid rgba(169, 16, 21, 0.3);
-  background: rgba(14, 7, 7, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   color: var(--text-muted);
   font-family: var(--font-sans);
   font-size: 0.85rem;
@@ -1768,17 +1782,17 @@ html, body {
 }
 
 .diario-author-btn.active-él {
-  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  background: linear-gradient(135deg, #c01218 0%, #7a0609 100%);
   border-color: var(--primary-glow);
   color: var(--text-primary);
-  box-shadow: 0 4px 15px rgba(169, 16, 21, 0.4);
+  box-shadow: 0 4px 20px rgba(169, 16, 21, 0.5);
 }
 
 .diario-author-btn.active-ella {
-  background: linear-gradient(135deg, #d4af37 0%, #7e6314 100%);
+  background: linear-gradient(135deg, #e8c84a 0%, #8a6e18 100%);
   border-color: var(--gold-metallic);
   color: #0c0606;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.5);
   font-weight: 700;
 }
 
@@ -1789,7 +1803,7 @@ html, body {
 .diario-image-upload {
   width: 100%;
   aspect-ratio: 16 / 9;
-  border: 2px dashed rgba(169, 16, 21, 0.3);
+  border: 2px dashed rgba(229, 62, 62, 0.35);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -1800,12 +1814,23 @@ html, body {
   transition: all 0.3s ease;
   color: var(--text-muted);
   font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .diario-image-upload:hover {
   border-color: var(--primary-glow);
-  background: rgba(169, 16, 21, 0.05);
+  background: rgba(169, 16, 21, 0.08);
   color: var(--accent-gold);
+}
+
+.diario-image-upload svg {
+  color: rgba(229, 62, 62, 0.6);
+  transition: all 0.3s;
+}
+
+.diario-image-upload:hover svg {
+  color: var(--primary-glow);
+  opacity: 1;
 }
 
 .diario-image-preview {
@@ -1815,7 +1840,8 @@ html, body {
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid rgba(169, 16, 21, 0.3);
+  border: 1px solid rgba(229, 62, 62, 0.35);
+  box-shadow: 0 0 20px rgba(169, 16, 21, 0.1);
 }
 
 .diario-image-preview img {
@@ -1829,15 +1855,16 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 8px;
+  padding: 10px;
   text-align: center;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   color: var(--text-primary);
   opacity: 0;
   transition: opacity 0.3s;
+  font-weight: 500;
 }
 
 .diario-image-preview:hover .diario-image-change {
@@ -1846,10 +1873,10 @@ html, body {
 
 .diario-form-input {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(169, 16, 21, 0.25);
-  background: rgba(14, 7, 7, 0.6);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  background: rgba(0, 0, 0, 0.45);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 0.95rem;
@@ -1857,68 +1884,80 @@ html, body {
   outline: none;
 }
 
+.diario-form-input::placeholder {
+  color: rgba(163, 140, 140, 0.4);
+}
+
 .diario-form-input:focus {
   border-color: var(--primary-glow);
-  box-shadow: 0 0 12px rgba(169, 16, 21, 0.2);
+  box-shadow: 0 0 16px rgba(229, 62, 62, 0.2), inset 0 0 8px rgba(169, 16, 21, 0.05);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .diario-form-textarea {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(169, 16, 21, 0.25);
-  background: rgba(14, 7, 7, 0.6);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  background: rgba(0, 0, 0, 0.45);
   color: var(--text-primary);
   font-family: var(--font-serif);
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.7;
   resize: vertical;
-  min-height: 100px;
+  min-height: 110px;
   transition: all 0.3s;
   outline: none;
 }
 
+.diario-form-textarea::placeholder {
+  color: rgba(163, 140, 140, 0.4);
+  font-style: italic;
+}
+
 .diario-form-textarea:focus {
   border-color: var(--primary-glow);
-  box-shadow: 0 0 12px rgba(169, 16, 21, 0.2);
+  box-shadow: 0 0 16px rgba(229, 62, 62, 0.2), inset 0 0 8px rgba(169, 16, 21, 0.05);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .diario-form-count {
   display: block;
   text-align: right;
   font-size: 0.65rem;
-  color: var(--text-muted);
+  color: rgba(252, 218, 218, 0.5);
   margin-top: 4px;
 }
 
 .diario-form-submit {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   border-radius: 30px;
   border: none;
-  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  background: linear-gradient(135deg, #c01218 0%, #7a0609 100%);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.15em;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 20px rgba(169, 16, 21, 0.3);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 25px rgba(169, 16, 21, 0.4);
   margin-top: 8px;
+  text-transform: uppercase;
 }
 
 .diario-form-submit:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(169, 16, 21, 0.5);
+  box-shadow: 0 14px 35px rgba(169, 16, 21, 0.6);
 }
 
 .diario-form-submit:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 

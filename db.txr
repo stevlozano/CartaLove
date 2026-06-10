@@ -1,0 +1,23 @@
+https://carta-love-susystev-default-rtdb.firebaseio.com/
+:
+null
+
+
+Nombre del proyecto
+carta-love-SUSYSTEV
+ID del proyecto
+carta-love-susystev
+Número del proyecto
+107910885138
+
+
+
+
+var admin = require("firebase-admin");
+
+var serviceAccount = require("path/to/serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://carta-love-susystev-default-rtdb.firebaseio.com"
+});

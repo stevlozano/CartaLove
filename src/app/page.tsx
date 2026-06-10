@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
+import { ref, set, remove, onValue, child } from "firebase/database";
+import { db } from "@/lib/firebase";
 
 // Types for components
 interface FloatingHeart {
@@ -140,20 +142,40 @@ export default function Home() {
   const [reconTab, setReconTab] = useState<"carta" | "mensajes">("carta");
   const [notificationPerm, setNotificationPerm] = useState<NotificationPermission | null>(null);
 
-  // Load messages from localStorage
+  // Listen for real-time messages from Firebase
   useEffect(() => {
+    const messagesRef = ref(db, 'messages');
+
+    // Migrate existing localStorage messages to Firebase
     const stored = localStorage.getItem("carta_messages");
     if (stored) {
       try {
-        setMessages(JSON.parse(stored));
+        const localMessages = JSON.parse(stored) as MessageEntry[];
+        if (localMessages.length > 0) {
+          localMessages.forEach((msg) => {
+            set(child(messagesRef, String(msg.id)), msg);
+          });
+        }
+        localStorage.removeItem("carta_messages");
       } catch {}
     }
-  }, []);
 
-  // Save messages to localStorage
-  useEffect(() => {
-    localStorage.setItem("carta_messages", JSON.stringify(messages));
-  }, [messages]);
+    // Listen for real-time updates
+    const unsubscribe = onValue(messagesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const list = Object.keys(data).map((key) => ({
+          ...data[key],
+        })) as MessageEntry[];
+        list.sort((a, b) => b.id - a.id);
+        setMessages(list);
+      } else {
+        setMessages([]);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   // Request notification permission
   const requestNotifPermission = async () => {
@@ -162,23 +184,23 @@ export default function Home() {
     setNotificationPerm(perm);
   };
 
-  // Send a message
+  // Send a message (real-time via Firebase)
   const sendMessage = () => {
     if (!newMessage.trim()) return;
     const now = new Date();
+    const id = Date.now();
     const entry: MessageEntry = {
-      id: Date.now(),
+      id,
       text: newMessage.trim(),
       author: msgAuthor,
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
-    setMessages(prev => [entry, ...prev]);
+    set(child(ref(db, 'messages'), String(id)), entry);
     setNewMessage("");
 
     // Show notification to the partner
     if ("Notification" in window && Notification.permission === "granted") {
-      const partnerName = msgAuthor === "él" ? "Ella" : "Él";
       new Notification("💌 Nuevo mensaje de " + (msgAuthor === "él" ? "Él" : "Ella"), {
         body: entry.text.length > 100 ? entry.text.slice(0, 100) + "..." : entry.text,
         icon: "/favicon.ico",
@@ -189,7 +211,7 @@ export default function Home() {
   };
 
   const deleteMessage = (id: number) => {
-    setMessages(prev => prev.filter(m => m.id !== id));
+    remove(child(ref(db, 'messages'), String(id)));
   };
 
   // Couple time delta state
