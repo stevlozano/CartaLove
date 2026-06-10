@@ -1608,3 +1608,533 @@ html, body {
   letter-spacing: 0.15em;
   font-weight: 600;
 }
+
+/* ==========================================================================
+   5. SHARED JOURNAL / MEMORY WALL (DIARIO COMPARTIDO)
+   ========================================================================== */
+
+.diario-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.diario-header {
+  text-align: center;
+}
+
+.diario-subheader {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+.diario-add-btn {
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  border: 1px solid rgba(255, 77, 82, 0.4);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 12px 28px;
+  border-radius: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 20px rgba(169, 16, 21, 0.3);
+}
+
+.diario-add-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(169, 16, 21, 0.5);
+  border-color: var(--primary-glow);
+}
+
+.diario-add-btn:active {
+  transform: translateY(0);
+}
+
+/* Form Overlay */
+.diario-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(4, 2, 2, 0.88);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+}
+
+.diario-form-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.diario-form-card {
+  width: 100%;
+  max-width: 520px;
+  background: linear-gradient(135deg, #160809 0%, #0a0304 100%);
+  border: 1px solid rgba(169, 16, 21, 0.35);
+  border-radius: 16px;
+  padding: 40px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.95);
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.diario-form-overlay.active .diario-form-card {
+  transform: scale(1) translateY(0);
+}
+
+.diario-form-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.diario-form-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.diario-form-title {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  color: var(--accent-gold);
+  text-align: center;
+  margin-bottom: 28px;
+  font-style: italic;
+}
+
+.diario-form-group {
+  margin-bottom: 20px;
+}
+
+.diario-form-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.diario-form-author-toggle {
+  display: flex;
+  gap: 12px;
+}
+
+.diario-author-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(169, 16, 21, 0.3);
+  background: rgba(14, 7, 7, 0.5);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.diario-author-btn.active-él {
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  border-color: var(--primary-glow);
+  color: var(--text-primary);
+  box-shadow: 0 4px 15px rgba(169, 16, 21, 0.4);
+}
+
+.diario-author-btn.active-ella {
+  background: linear-gradient(135deg, #d4af37 0%, #7e6314 100%);
+  border-color: var(--gold-metallic);
+  color: #0c0606;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+  font-weight: 700;
+}
+
+.diario-author-btn:hover {
+  transform: translateY(-2px);
+}
+
+.diario-image-upload {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 2px dashed rgba(169, 16, 21, 0.3);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.diario-image-upload:hover {
+  border-color: var(--primary-glow);
+  background: rgba(169, 16, 21, 0.05);
+  color: var(--accent-gold);
+}
+
+.diario-image-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(169, 16, 21, 0.3);
+}
+
+.diario-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.diario-image-change {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--text-primary);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.diario-image-preview:hover .diario-image-change {
+  opacity: 1;
+}
+
+.diario-form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  background: rgba(14, 7, 7, 0.6);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  transition: all 0.3s;
+  outline: none;
+}
+
+.diario-form-input:focus {
+  border-color: var(--primary-glow);
+  box-shadow: 0 0 12px rgba(169, 16, 21, 0.2);
+}
+
+.diario-form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  background: rgba(14, 7, 7, 0.6);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 100px;
+  transition: all 0.3s;
+  outline: none;
+}
+
+.diario-form-textarea:focus {
+  border-color: var(--primary-glow);
+  box-shadow: 0 0 12px rgba(169, 16, 21, 0.2);
+}
+
+.diario-form-count {
+  display: block;
+  text-align: right;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.diario-form-submit {
+  width: 100%;
+  padding: 14px;
+  border-radius: 30px;
+  border: none;
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(169, 16, 21, 0.3);
+  margin-top: 8px;
+}
+
+.diario-form-submit:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(169, 16, 21, 0.5);
+}
+
+.diario-form-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Memory Feed */
+.diario-feed {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding-bottom: 40px;
+}
+
+/* Empty State */
+.diario-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(14, 7, 7, 0.3);
+  border: 1px solid rgba(169, 16, 21, 0.15);
+  border-radius: 16px;
+}
+
+.diario-empty-icon {
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+
+.diario-empty-text {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  color: var(--accent-gold);
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.diario-empty-sub {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Individual Memory Card */
+.memoria-card {
+  background: rgba(14, 7, 7, 0.6);
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: memoria-fade-in 0.6s ease forwards;
+}
+
+@keyframes memoria-fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.memoria-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(169, 16, 21, 0.5);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+}
+
+.memoria-ella {
+  border-color: rgba(212, 175, 55, 0.25);
+}
+
+.memoria-ella:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.memoria-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(169, 16, 21, 0.1);
+}
+
+.memoria-ella .memoria-card-header {
+  border-bottom-color: rgba(212, 175, 55, 0.1);
+}
+
+.memoria-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.memoria-avatar {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 0 6px rgba(229, 62, 62, 0.3));
+}
+
+.memoria-author-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.memoria-author-name {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--accent-gold);
+  font-weight: 500;
+}
+
+.memoria-date {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.memoria-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.memoria-card:hover .memoria-delete {
+  opacity: 1;
+}
+
+.memoria-delete:hover {
+  color: #ff4d52;
+  background: rgba(255, 77, 82, 0.1);
+}
+
+.memoria-image-wrapper {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #0a0304;
+  position: relative;
+}
+
+.memoria-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.memoria-card:hover .memoria-image-wrapper img {
+  transform: scale(1.04);
+}
+
+.memoria-body {
+  padding: 20px;
+}
+
+.memoria-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--accent-gold);
+  margin-bottom: 8px;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.memoria-description {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  opacity: 0.9;
+  white-space: pre-wrap;
+}
+
+.memoria-footer-bar {
+  padding: 10px 20px 16px;
+}
+
+.memoria-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-el {
+  background: rgba(169, 16, 21, 0.15);
+  color: #ff4d52;
+  border: 1px solid rgba(169, 16, 21, 0.3);
+}
+
+.badge-ella {
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-metallic);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+@media (max-width: 600px) {
+  .diario-form-card {
+    padding: 28px 20px;
+  }
+  .diario-form-title {
+    font-size: 1.4rem;
+  }
+  .memoria-card-header {
+    padding: 12px 16px;
+  }
+  .memoria-body {
+    padding: 16px;
+  }
+  .memoria-title {
+    font-size: 1.3rem;
+  }
+  .memoria-description {
+    font-size: 1rem;
+  }
+}

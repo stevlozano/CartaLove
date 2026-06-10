@@ -33,6 +33,16 @@ interface TimeDelta {
   seconds: number;
 }
 
+interface MemoryEntry {
+  id: number;
+  imageData: string;
+  title: string;
+  description: string;
+  author: "él" | "ella";
+  date: string;
+  time: string;
+}
+
 export default function Home() {
   const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos">("reconciliations");
   
@@ -56,6 +66,65 @@ export default function Home() {
   const [hearts, setHearts] = useState<FloatingHeart[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
   
+  // Shared Journal / Memory Wall state
+  const [memories, setMemories] = useState<MemoryEntry[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [formTitle, setFormTitle] = useState("");
+  const [formDesc, setFormDesc] = useState("");
+  const [formAuthor, setFormAuthor] = useState<"él" | "ella">("él");
+  const [formImage, setFormImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load memories from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("carta_memories");
+    if (stored) {
+      try {
+        setMemories(JSON.parse(stored));
+      } catch {}
+    }
+  }, []);
+
+  // Save memories to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("carta_memories", JSON.stringify(memories));
+  }, [memories]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setFormImage(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const addMemory = () => {
+    if (!formImage || !formTitle.trim() || !formDesc.trim()) return;
+    const now = new Date();
+    const entry: MemoryEntry = {
+      id: Date.now(),
+      imageData: formImage,
+      title: formTitle.trim(),
+      description: formDesc.trim(),
+      author: formAuthor,
+      date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
+      time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMemories(prev => [entry, ...prev]);
+    setFormImage(null);
+    setFormTitle("");
+    setFormDesc("");
+    setFormAuthor("él");
+    setShowForm(false);
+    spawnHearts(formAuthor === "ella" ? "gold" : "crimson");
+  };
+
+  const deleteMemory = (id: number) => {
+    setMemories(prev => prev.filter(m => m.id !== id));
+  };
+
   // Couple time delta state
   const [timeTogether, setTimeTogether] = useState<TimeDelta>({
     years: 0,
@@ -474,7 +543,7 @@ export default function Home() {
           onClick={() => handleViewChange('photos')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-          Fotos
+          Diario
         </button>
       </nav>
 
@@ -823,65 +892,170 @@ export default function Home() {
           </div>
         )}
 
-        {/* VIEW 5: MEMORIES PHOTO POLAROID GRID */}
+        {/* VIEW 5: SHARED JOURNAL / MEMORY WALL (DIARIO COMPARTIDO) */}
         {view === "photos" && (
-          <div className="photos-container">
-            <header style={{ textAlign: 'center' }}>
-              <span className="mesarios-subtitle">Nuestras Memorias</span>
-              <h2 className="letter-title" style={{ margin: 0 }}>Galería de Momentos</h2>
+          <div className="diario-container">
+            <header className="diario-header">
+              <span className="mesarios-subtitle">Nuestro Diario</span>
+              <h2 className="letter-title" style={{ margin: 0 }}>Memorias Compartidas</h2>
+              <p className="diario-subheader">
+                Cada foto, cada palabra, cada instante que vivimos juntos...
+              </p>
             </header>
 
-            <div className="photos-grid">
-              {/* Photo 1: Sunset */}
-              <div className="polaroid-card" onClick={() => spawnHearts("crimson")}>
-                <div className="polaroid-image-container">
-                  <img 
-                    src="/couple_sunset.png" 
-                    alt="Atardeceres Contigo"
-                    width="400"
-                    height="400"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="polaroid-caption">
-                  <span>Atardeceres Contigo</span>
-                  <span className="polaroid-subcaption">15 de Noviembre</span>
-                </div>
-              </div>
+            {/* Add Memory Button */}
+            <button className="diario-add-btn" onClick={() => setShowForm(true)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+              </svg>
+              NUEVO RECUERDO
+            </button>
 
-              {/* Photo 2: Rain */}
-              <div className="polaroid-card" onClick={() => spawnHearts("crimson")}>
-                <div className="polaroid-image-container">
-                  <img 
-                    src="/couple_rain.png" 
-                    alt="Bajo la Lluvia"
-                    width="400"
-                    height="400"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="polaroid-caption">
-                  <span>Bailar Bajo la Lluvia</span>
-                  <span className="polaroid-subcaption">El Refugio</span>
-                </div>
-              </div>
+            {/* Create Memory Form */}
+            <div className={`diario-form-overlay ${showForm ? 'active' : ''}`} onClick={() => setShowForm(false)}>
+              <div className="diario-form-card" onClick={e => e.stopPropagation()}>
+                <button className="diario-form-close" onClick={() => setShowForm(false)}>✕</button>
+                <h3 className="diario-form-title">Capturar un Momento</h3>
 
-              {/* Photo 3: Hands */}
-              <div className="polaroid-card" onClick={() => spawnHearts("gold")}>
-                <div className="polaroid-image-container">
-                  <img 
-                    src="/couple_hands.png" 
-                    alt="Nuestra Promesa"
-                    width="400"
-                    height="400"
-                    loading="lazy"
+                <div className="diario-form-group">
+                  <label className="diario-form-label">¿Quién eres?</label>
+                  <div className="diario-form-author-toggle">
+                    <button
+                      className={`diario-author-btn ${formAuthor === 'él' ? 'active-él' : ''}`}
+                      onClick={() => setFormAuthor('él')}
+                    >
+                      👑 Él
+                    </button>
+                    <button
+                      className={`diario-author-btn ${formAuthor === 'ella' ? 'active-ella' : ''}`}
+                      onClick={() => setFormAuthor('ella')}
+                    >
+                      🌹 Ella
+                    </button>
+                  </div>
+                </div>
+
+                <div className="diario-form-group">
+                  <label className="diario-form-label">Foto del momento</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    style={{ display: 'none' }}
+                  />
+                  {formImage ? (
+                    <div className="diario-image-preview" onClick={() => fileInputRef.current?.click()}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={formImage} alt="Preview" />
+                      <span className="diario-image-change">Cambiar foto</span>
+                    </div>
+                  ) : (
+                    <div className="diario-image-upload" onClick={() => fileInputRef.current?.click()}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.5">
+                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                      </svg>
+                      <span>Toca para subir una foto</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="diario-form-group">
+                  <label className="diario-form-label">Título del recuerdo</label>
+                  <input
+                    className="diario-form-input"
+                    type="text"
+                    placeholder="¿Qué hicimos?"
+                    value={formTitle}
+                    onChange={e => setFormTitle(e.target.value)}
+                    maxLength={60}
                   />
                 </div>
-                <div className="polaroid-caption">
-                  <span>Tus Manos y las Mías</span>
-                  <span className="polaroid-subcaption">Promesa Eterna</span>
+
+                <div className="diario-form-group">
+                  <label className="diario-form-label">¿Qué pasó? Cuéntalo...</label>
+                  <textarea
+                    className="diario-form-textarea"
+                    placeholder="Escribe aquí lo que viviste, lo que sentiste..."
+                    value={formDesc}
+                    onChange={e => setFormDesc(e.target.value)}
+                    rows={4}
+                    maxLength={500}
+                  />
+                  <span className="diario-form-count">{formDesc.length}/500</span>
                 </div>
+
+                <button
+                  className="diario-form-submit"
+                  onClick={addMemory}
+                  disabled={!formImage || !formTitle.trim() || !formDesc.trim()}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                  </svg>
+                  GUARDAR RECUERDO
+                </button>
               </div>
+            </div>
+
+            {/* Memory Feed */}
+            <div className="diario-feed">
+              {memories.length === 0 ? (
+                <div className="diario-empty">
+                  <div className="diario-empty-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
+                      <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                    </svg>
+                  </div>
+                  <p className="diario-empty-text">Aún no hay recuerdos...</p>
+                  <p className="diario-empty-sub">¡Empieza a llenar nuestro diario con los momentos que vivimos juntos!</p>
+                </div>
+              ) : (
+                memories.map((memory) => (
+                  <div key={memory.id} className={`memoria-card ${memory.author === 'ella' ? 'memoria-ella' : 'memoria-el'}`}>
+                    <div className="memoria-card-header">
+                      <div className="memoria-author">
+                        <span className="memoria-avatar">
+                          {memory.author === 'él' ? '👑' : '🌹'}
+                        </span>
+                        <div className="memoria-author-info">
+                          <span className="memoria-author-name">
+                            {memory.author === 'él' ? 'Él' : 'Ella'}
+                          </span>
+                          <span className="memoria-date">
+                            {memory.date} · {memory.time}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        className="memoria-delete"
+                        onClick={() => deleteMemory(memory.id)}
+                        title="Eliminar recuerdo"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="memoria-image-wrapper">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={memory.imageData} alt={memory.title} loading="lazy" />
+                    </div>
+
+                    <div className="memoria-body">
+                      <h4 className="memoria-title">{memory.title}</h4>
+                      <p className="memoria-description">{memory.description}</p>
+                    </div>
+
+                    <div className="memoria-footer-bar">
+                      <span className={`memoria-badge ${memory.author === 'ella' ? 'badge-ella' : 'badge-el'}`}>
+                        {memory.author === 'él' ? '👑 Publicado por Él' : '🌹 Publicado por Ella'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
