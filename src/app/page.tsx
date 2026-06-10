@@ -687,22 +687,6 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Persistent Controls Corner (Mute/Audio button) */}
-      <div className="top-bar">
-        <button 
-          className={`ambient-toggle ${!isMuted ? 'playing' : ''}`} 
-          onClick={toggleMute}
-          title={isMuted ? "Activar música ambiental" : "Silenciar"}
-        >
-          <span className="sound-waves">
-            <span className="wave-bar" />
-            <span className="wave-bar" />
-            <span className="wave-bar" />
-          </span>
-          {isMuted ? "MÚSICA: OFF" : "MÚSICA: ON"}
-        </button>
-      </div>
-
       {/* Floating capsule Glassmorphism Navbar */}
       <nav className="floating-navbar">
         <button 
@@ -739,6 +723,18 @@ export default function Home() {
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
           Diario
+        </button>
+        <button 
+          className={`nav-item music-nav-item ${!isMuted ? 'active' : ''}`} 
+          onClick={toggleMute}
+          title={isMuted ? "Activar música ambiental" : "Silenciar"}
+        >
+          <span className="sound-waves" style={{ width: 12, height: 10 }}>
+            <span className="wave-bar" />
+            <span className="wave-bar" />
+            <span className="wave-bar" />
+          </span>
+          {isMuted ? "OFF" : "ON"}
         </button>
       </nav>
 

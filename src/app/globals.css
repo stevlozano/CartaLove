@@ -157,43 +157,10 @@ html, body {
 }
 
 /* Top Branding / Ambient Controls */
-.top-bar {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 1100;
-  pointer-events: auto;
-}
-
-.ambient-toggle {
-  background: rgba(14, 7, 7, 0.6);
-  border: 1px solid rgba(169, 16, 21, 0.4);
-  color: var(--accent-gold);
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.ambient-toggle:hover {
-  background: var(--primary-red);
-  color: var(--text-primary);
-  border-color: var(--primary-glow);
-  box-shadow: 0 0 15px rgba(169, 16, 21, 0.6);
-  transform: translateY(-2px);
-}
-
-.ambient-toggle:active {
-  transform: translateY(0);
+.music-nav-item {
+  gap: 4px !important;
+  padding: 5px 10px !important;
+  font-size: 0.6rem !important;
 }
 
 .sound-waves {
@@ -216,8 +183,12 @@ html, body {
 .wave-bar:nth-child(2) { animation-delay: 0.15s; height: 70%; }
 .wave-bar:nth-child(3) { animation-delay: 0.3s; height: 40%; }
 
-.ambient-toggle.playing .wave-bar {
+.music-nav-item.active .wave-bar {
   animation-play-state: running;
+}
+
+.music-nav-item.active {
+  color: var(--primary-glow) !important;
 }
 
 @keyframes sound-bounce {
