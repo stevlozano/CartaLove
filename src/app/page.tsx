@@ -55,7 +55,9 @@ interface MessageEntry {
 }
 
 export default function Home() {
-  const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos">("reconciliations");
+  const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos">(
+    () => (typeof window !== "undefined" && (localStorage.getItem("carta_view") as any)) || "reconciliations"
+  );
   
   // Audio state
   const [isMuted, setIsMuted] = useState(true);
@@ -671,6 +673,7 @@ export default function Home() {
   // 7. Navbar smooth tab transition
   const handleViewChange = (newView: typeof view) => {
     setView(newView);
+    localStorage.setItem("carta_view", newView);
     // Start background music on active action if not already playing
     if (isMuted && newView !== "reconciliations") {
       initSynth();
