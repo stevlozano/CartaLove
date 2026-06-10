@@ -2954,3 +2954,26 @@ html, body {
   border-color: var(--primary-glow);
   color: var(--primary-glow);
 }
+
+@media (max-width: 600px) {
+  .salidas-form-row {
+    flex-direction: column;
+  }
+  .salidas-input-sm {
+    max-width: 100%;
+  }
+  .salidas-submit-btn {
+    width: 100%;
+    text-align: center;
+  }
+  .salidas-card {
+    padding: 12px;
+  }
+  .salidas-card-title {
+    font-size: 1rem;
+  }
+  .salidas-card-details {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
