@@ -156,44 +156,66 @@ html, body {
   padding: 100px 24px 60px 24px; /* Room for navbar */
 }
 
-/* Top Branding / Ambient Controls */
-.music-nav-item {
-  gap: 4px !important;
-  padding: 5px 10px !important;
-  font-size: 0.6rem !important;
-}
-
-.sound-waves {
+/* Floating music toggle (bottom-right) */
+.music-float-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 900;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(169, 16, 21, 0.3);
+  background: rgba(14, 7, 7, 0.6);
+  backdrop-filter: blur(10px);
+  color: var(--accent-gold);
   display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 12px;
-  width: 16px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  padding: 0;
 }
 
-.wave-bar {
-  width: 2px;
-  height: 100%;
-  background-color: currentColor;
-  border-radius: 1px;
-  animation: sound-bounce 1s ease-in-out infinite alternate;
-  animation-play-state: paused;
+.music-float-btn:hover {
+  background: var(--primary-red);
+  color: var(--text-primary);
+  border-color: var(--primary-glow);
+  transform: scale(1.1);
 }
 
-.wave-bar:nth-child(2) { animation-delay: 0.15s; height: 70%; }
-.wave-bar:nth-child(3) { animation-delay: 0.3s; height: 40%; }
-
-.music-nav-item.active .wave-bar {
-  animation-play-state: running;
+.music-float-btn.playing {
+  color: var(--primary-glow);
+  border-color: var(--primary-glow);
+  box-shadow: 0 0 12px rgba(169, 16, 21, 0.4);
 }
 
-.music-nav-item.active {
-  color: var(--primary-glow) !important;
+/* Error Toast */
+.error-toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(169, 16, 21, 0.9);
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  z-index: 1600;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  text-align: center;
+  max-width: 85vw;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 77, 82, 0.4);
 }
 
-@keyframes sound-bounce {
-  0% { height: 20%; }
-  100% { height: 100%; }
+.error-toast.active {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* Floating Navigation Bar */

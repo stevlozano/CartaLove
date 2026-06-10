@@ -87,6 +87,9 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
 
+  // Toast feedback for errors
+  const [toastMsg, setToastMsg] = useState("");
+
   // PWA install state
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -281,9 +284,12 @@ export default function Home() {
     return unsubscribe;
   }, []);
 
-  // Request notification permission
+  // Check if mobile (notifications don't work on mobile browsers)
+  const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // Request notification permission (only on desktop)
   const requestNotifPermission = async () => {
-    if (!("Notification" in window)) return;
+    if (!("Notification" in window) || isMobile) return;
     const perm = await Notification.requestPermission();
     setNotificationPerm(perm);
   };
@@ -301,11 +307,18 @@ export default function Home() {
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
     set(child(ref(db, 'messages'), String(id)), entry)
-      .catch((err) => console.error("Firebase send error:", err));
+      .then(() => {
+        setToastMsg("");
+      })
+      .catch((err) => {
+        console.error("Firebase send error:", err);
+        setToastMsg("Error al enviar. Revisa las reglas de Firebase DB.");
+        setTimeout(() => setToastMsg(""), 5000);
+      });
     setNewMessage("");
 
-    // Show notification to the partner
-    if ("Notification" in window && Notification.permission === "granted") {
+    // Show notification to the partner (desktop only)
+    if (!isMobile && "Notification" in window && Notification.permission === "granted") {
       new Notification("💌 Nuevo mensaje de " + (msgAuthor === "él" ? "Él" : "Ella"), {
         body: entry.text.length > 100 ? entry.text.slice(0, 100) + "..." : entry.text,
         icon: "/favicon.ico",
@@ -724,19 +737,20 @@ export default function Home() {
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
           Diario
         </button>
-        <button 
-          className={`nav-item music-nav-item ${!isMuted ? 'active' : ''}`} 
-          onClick={toggleMute}
-          title={isMuted ? "Activar música ambiental" : "Silenciar"}
-        >
-          <span className="sound-waves" style={{ width: 12, height: 10 }}>
-            <span className="wave-bar" />
-            <span className="wave-bar" />
-            <span className="wave-bar" />
-          </span>
-          {isMuted ? "OFF" : "ON"}
-        </button>
       </nav>
+
+      {/* Floating music toggle (bottom-right, non-intrusive) */}
+      <button 
+        className={`music-float-btn ${!isMuted ? 'playing' : ''}`} 
+        onClick={toggleMute}
+        title={isMuted ? "Activar música" : "Silenciar"}
+      >
+        {isMuted ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/><path d="M17.66 5.34l1.32-1.32C20.9 5.95 22 8.36 22 11s-1.1 5.05-3.02 6.98l-1.32-1.32C19.1 15.2 20 13.2 20 11s-.9-4.2-2.34-5.66z"/></svg>
+        )}
+      </button>
 
       {/* ==========================================================================
          SPA ROUTED PORTAL VIEWS
@@ -1471,6 +1485,9 @@ export default function Home() {
           <button className="pwa-install-close" onClick={() => setShowInstallBanner(false)}>✕</button>
         </div>
       </div>
+
+      {/* Error Toast */}
+      <div className={`error-toast ${toastMsg ? 'active' : ''}`}>{toastMsg}</div>
     </div>
   );
 }
