@@ -153,7 +153,7 @@ html, body {
   justify-content: center;
   align-items: center;
   z-index: 10;
-  padding: 100px 24px 60px 24px; /* Room for navbar */
+  padding: 60px 24px 90px 24px;
 }
 
 /* Nav label (hidden on mobile, shown on desktop) */
@@ -198,10 +198,10 @@ html, body {
   transform: translateX(-50%) translateY(0);
 }
 
-/* Floating Navigation Bar */
+/* Floating Navigation Bar (always at bottom like WhatsApp) */
 .floating-navbar {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
@@ -272,7 +272,7 @@ html, body {
     right: 20px;
   }
   .floating-navbar {
-    top: 15px;
+    bottom: 15px;
     padding: 4px;
     gap: 2px;
   }
@@ -2562,9 +2562,8 @@ html, body {
     padding: 8px 12px;
   }
 
-  /* Move navbar to bottom on mobile, icons only */
+  /* Navbar icons only on mobile */
   .floating-navbar {
-    top: auto;
     bottom: 12px;
     border-radius: 24px;
     padding: 4px 8px;
