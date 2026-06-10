@@ -3,11 +3,11 @@
   --bg-card: #0e0707;
   --primary-red: #a91015;
   --primary-glow: #e53e3e;
-  --accent-gold: #fcdada;
+  --accent-gold: #f5d6d6;
   --gold-metallic: #d4af37;
   --gold-glow: #ffd700;
-  --text-primary: #fcf6f6;
-  --text-muted: #a38c8c;
+  --text-primary: #ffffff;
+  --text-muted: #c4a8a8;
   --font-serif: var(--font-serif), 'Cormorant Garamond', Georgia, serif;
   --font-sans: var(--font-sans), 'Montserrat', sans-serif;
   
@@ -156,39 +156,19 @@ html, body {
   padding: 100px 24px 60px 24px; /* Room for navbar */
 }
 
-/* Floating music toggle (bottom-right) */
-.music-float-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 900;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid rgba(169, 16, 21, 0.3);
-  background: rgba(14, 7, 7, 0.6);
-  backdrop-filter: blur(10px);
-  color: var(--accent-gold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-  padding: 0;
+/* Nav label (hidden on mobile, shown on desktop) */
+.nav-label {
+  display: inline;
 }
 
-.music-float-btn:hover {
-  background: var(--primary-red);
-  color: var(--text-primary);
-  border-color: var(--primary-glow);
-  transform: scale(1.1);
+/* Music nav item */
+.music-item svg {
+  width: 14px;
+  height: 14px;
 }
 
-.music-float-btn.playing {
-  color: var(--primary-glow);
-  border-color: var(--primary-glow);
-  box-shadow: 0 0 12px rgba(169, 16, 21, 0.4);
+.music-item.active {
+  color: var(--primary-glow) !important;
 }
 
 /* Error Toast */
@@ -575,7 +555,7 @@ html, body {
 
 @media (max-width: 480px) {
   .viewport-container {
-    padding: 90px 12px 60px 12px;
+    padding: 90px 12px 100px 12px;
   }
   .letter-card {
     padding: 28px 16px;
@@ -2580,5 +2560,35 @@ html, body {
   .recon-subnav-btn {
     font-size: 0.65rem;
     padding: 8px 12px;
+  }
+
+  /* Move navbar to bottom on mobile, icons only */
+  .floating-navbar {
+    top: auto;
+    bottom: 12px;
+    border-radius: 24px;
+    padding: 4px 8px;
+    max-width: 97vw;
+  }
+
+  .nav-item {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 12px;
+    font-size: 0.5rem;
+  }
+
+  .nav-item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .music-item svg {
+    width: 20px;
+    height: 20px;
   }
 }

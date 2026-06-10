@@ -86,6 +86,7 @@ export default function Home() {
   const [formImage, setFormImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Toast feedback for errors
   const [toastMsg, setToastMsg] = useState("");
@@ -272,7 +273,7 @@ export default function Home() {
         const list = Object.keys(data).map((key) => ({
           ...data[key],
         })) as MessageEntry[];
-        list.sort((a, b) => b.id - a.id);
+        list.sort((a, b) => a.id - b.id);
         setMessages(list);
       } else {
         setMessages([]);
@@ -283,6 +284,11 @@ export default function Home() {
 
     return unsubscribe;
   }, []);
+
+  // Auto-scroll messages to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Check if mobile (notifications don't work on mobile browsers)
   const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -707,50 +713,49 @@ export default function Home() {
           onClick={() => handleViewChange('profile')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-          Perfil
+          <span className="nav-label">Perfil</span>
         </button>
         <button 
           className={`nav-item ${view === 'mesarios' ? 'active' : ''}`} 
           onClick={() => handleViewChange('mesarios')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
-          Mesarios
+          <span className="nav-label">Mesarios</span>
         </button>
         <button 
           className={`nav-item ${view === 'reconciliations' ? 'active' : ''}`} 
           onClick={() => handleViewChange('reconciliations')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-          Reconciliación
+          <span className="nav-label">Reconciliación</span>
         </button>
         <button 
           className={`nav-item ${view === 'anniversaries' ? 'active' : ''}`} 
           onClick={() => handleViewChange('anniversaries')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 6h2v2h-2zm0 4h2v2h-2z"/></svg>
-          Aniversario
+          <span className="nav-label">Aniversario</span>
         </button>
         <button 
           className={`nav-item ${view === 'photos' ? 'active' : ''}`} 
           onClick={() => handleViewChange('photos')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-          Diario
+          <span className="nav-label">Diario</span>
+        </button>
+        <button 
+          className={`nav-item music-item ${!isMuted ? 'active' : ''}`} 
+          onClick={toggleMute}
+          title={isMuted ? "Activar música" : "Silenciar"}
+        >
+          {isMuted ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/><path d="M17.66 5.34l1.32-1.32C20.9 5.95 22 8.36 22 11s-1.1 5.05-3.02 6.98l-1.32-1.32C19.1 15.2 20 13.2 20 11s-.9-4.2-2.34-5.66z"/></svg>
+          )}
+          <span className="nav-label">{isMuted ? "Música" : "ON"}</span>
         </button>
       </nav>
-
-      {/* Floating music toggle (bottom-right, non-intrusive) */}
-      <button 
-        className={`music-float-btn ${!isMuted ? 'playing' : ''}`} 
-        onClick={toggleMute}
-        title={isMuted ? "Activar música" : "Silenciar"}
-      >
-        {isMuted ? (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-        ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/><path d="M17.66 5.34l1.32-1.32C20.9 5.95 22 8.36 22 11s-1.1 5.05-3.02 6.98l-1.32-1.32C19.1 15.2 20 13.2 20 11s-.9-4.2-2.34-5.66z"/></svg>
-        )}
-      </button>
 
       {/* ==========================================================================
          SPA ROUTED PORTAL VIEWS
@@ -1094,48 +1099,6 @@ export default function Home() {
                   </p>
                 </header>
 
-                {/* Compose message */}
-                <div className="mensajes-compose">
-                  <div className="mensajes-author-toggle">
-                    <button
-                      className={`mensajes-author-btn ${msgAuthor === 'él' ? 'active-él' : ''}`}
-                      onClick={() => setMsgAuthor('él')}
-                    >
-                      👑 Él escribe
-                    </button>
-                    <button
-                      className={`mensajes-author-btn ${msgAuthor === 'ella' ? 'active-ella' : ''}`}
-                      onClick={() => {
-                        setMsgAuthor('ella');
-                        if (!notificationPerm) requestNotifPermission();
-                      }}
-                    >
-                      🌹 Ella escribe
-                    </button>
-                  </div>
-                  <textarea
-                    className="mensajes-textarea"
-                    placeholder="Escribe un poema, un mensaje, lo que quieras decirle..."
-                    value={newMessage}
-                    onChange={e => setNewMessage(e.target.value)}
-                    rows={4}
-                    maxLength={1000}
-                  />
-                  <div className="mensajes-compose-footer">
-                    <span className="mensajes-count">{newMessage.length}/1000</span>
-                    <button
-                      className="mensajes-send-btn"
-                      onClick={sendMessage}
-                      disabled={!newMessage.trim()}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                      </svg>
-                      ENVIAR
-                    </button>
-                  </div>
-                </div>
-
                 {/* Messages feed */}
                 <div className="mensajes-feed">
                   {messages.length === 0 ? (
@@ -1172,6 +1135,49 @@ export default function Home() {
                       </div>
                     ))
                   )}
+                </div>
+                <div ref={messagesEndRef} />
+
+                {/* Compose message (at bottom like WhatsApp) */}
+                <div className="mensajes-compose">
+                  <div className="mensajes-author-toggle">
+                    <button
+                      className={`mensajes-author-btn ${msgAuthor === 'él' ? 'active-él' : ''}`}
+                      onClick={() => setMsgAuthor('él')}
+                    >
+                      👑 Él escribe
+                    </button>
+                    <button
+                      className={`mensajes-author-btn ${msgAuthor === 'ella' ? 'active-ella' : ''}`}
+                      onClick={() => {
+                        setMsgAuthor('ella');
+                        if (!notificationPerm) requestNotifPermission();
+                      }}
+                    >
+                      🌹 Ella escribe
+                    </button>
+                  </div>
+                  <textarea
+                    className="mensajes-textarea"
+                    placeholder="Escribe un poema, un mensaje, lo que quieras decirle..."
+                    value={newMessage}
+                    onChange={e => setNewMessage(e.target.value)}
+                    rows={3}
+                    maxLength={1000}
+                  />
+                  <div className="mensajes-compose-footer">
+                    <span className="mensajes-count">{newMessage.length}/1000</span>
+                    <button
+                      className="mensajes-send-btn"
+                      onClick={sendMessage}
+                      disabled={!newMessage.trim()}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                      </svg>
+                      ENVIAR
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
