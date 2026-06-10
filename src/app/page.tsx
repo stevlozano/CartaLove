@@ -69,35 +69,57 @@ interface OutingEntry {
 const USERS = ["él", "ella"] as const;
 type UserId = typeof USERS[number];
 
-const USER_LABELS: Record<UserId, { self: string; partner: string; emoji: string }> = {
-  él: { self: "Yo", partner: "Susy", emoji: "👑" },
-  ella: { self: "Yo", partner: "Stev", emoji: "🌹" },
-};
-
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<UserId | null>(
     () => (typeof window !== "undefined" ? (localStorage.getItem("carta_user") as UserId) : null)
   );
+  const [displayName, setDisplayName] = useState(
+    () => (typeof window !== "undefined" ? (localStorage.getItem("carta_display_name") || "") : "")
+  );
+  const [partnerDisplayName, setPartnerDisplayName] = useState(
+    () => (typeof window !== "undefined" ? (localStorage.getItem("carta_partner_name") || "") : "")
+  );
+
+  const [partnerNameInput, setPartnerNameInput] = useState("");
   const [loginName, setLoginName] = useState("");
+  const [loginRole, setLoginRole] = useState<UserId | null>(null);
+  const [loginPartnerName, setLoginPartnerName] = useState("");
   const [loginError, setLoginError] = useState("");
 
   const [view, setView] = useState<"profile" | "mesarios" | "reconciliations" | "anniversaries" | "photos" | "salidas">(
     () => (typeof window !== "undefined" && (localStorage.getItem("carta_view") as any)) || "reconciliations"
   );
-  
-  const handleLogin = () => {
-    const name = loginName.trim().toLowerCase();
-    if (name === "stev" || name === "él" || name === "el") {
-      setCurrentUser("él");
-      localStorage.setItem("carta_user", "él");
-      setLoginError("");
-    } else if (name === "susy" || name === "ella") {
-      setCurrentUser("ella");
-      localStorage.setItem("carta_user", "ella");
-      setLoginError("");
-    } else {
-      setLoginError("Solo pueden entrar Stev o Susy");
+
+  const partnerId = currentUser === "él" ? "ella" : "él";
+
+  // If user is logged in but has no display name stored, set fallback
+  useEffect(() => {
+    if (currentUser && !displayName) {
+      const fallback = currentUser === "él" ? "Él" : "Ella";
+      setDisplayName(fallback);
+      localStorage.setItem("carta_display_name", fallback);
     }
+  }, [currentUser]);
+
+  // Return the display name for a given user ID
+  const getUserName = (uid: UserId) => {
+    if (uid === currentUser) return displayName;
+    return partnerDisplayName || (uid === "él" ? "Él" : "Ella");
+  };
+
+  const handleLogin = () => {
+    const name = loginName.trim();
+    if (!name) { setLoginError("Escribe tu nombre"); return; }
+    if (!loginRole) { setLoginError("Selecciona quién eres"); return; }
+    setCurrentUser(loginRole);
+    setDisplayName(name);
+    localStorage.setItem("carta_user", loginRole);
+    localStorage.setItem("carta_display_name", name);
+    if (loginPartnerName.trim()) {
+      setPartnerDisplayName(loginPartnerName.trim());
+      localStorage.setItem("carta_partner_name", loginPartnerName.trim());
+    }
+    setLoginError("");
   };
 
   const handleLogout = () => {
@@ -105,7 +127,10 @@ export default function Home() {
     localStorage.removeItem("carta_user");
   };
 
-  const partnerId = currentUser === "él" ? "ella" : "él";
+  const handleSetPartnerName = (name: string) => {
+    setPartnerDisplayName(name);
+    localStorage.setItem("carta_partner_name", name);
+  };
 
   // Audio state
   const [isMuted, setIsMuted] = useState(true);
@@ -812,11 +837,35 @@ export default function Home() {
           <input
             className="login-input"
             type="text"
-            placeholder="Escribe Stev o Susy..."
+            placeholder="Tu nombre..."
             value={loginName}
             onChange={e => setLoginName(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            onKeyDown={e => e.key === "Enter" && loginRole && handleLogin()}
             autoFocus
+          />
+          <div className="login-role-group">
+            <p className="login-role-label">Eres...</p>
+            <div className="login-role-btns">
+              <button
+                className={`login-role-btn ${loginRole === 'él' ? 'active-él' : ''}`}
+                onClick={() => setLoginRole('él')}
+              >
+                👑 Él
+              </button>
+              <button
+                className={`login-role-btn ${loginRole === 'ella' ? 'active-ella' : ''}`}
+                onClick={() => setLoginRole('ella')}
+              >
+                🌹 Ella
+              </button>
+            </div>
+          </div>
+          <input
+            className="login-input"
+            type="text"
+            placeholder="Nombre de tu pareja (opcional)"
+            value={loginPartnerName}
+            onChange={e => setLoginPartnerName(e.target.value)}
           />
           {loginError && <p className="login-error">{loginError}</p>}
           <button className="login-btn" onClick={handleLogin}>Entrar</button>
@@ -928,15 +977,35 @@ export default function Home() {
             <header style={{ textAlign: 'center' }}>
               <span className="profile-tag">Nuestra Identidad</span>
               <h2 className="letter-title" style={{ margin: 0 }}>Nuestros Perfiles</h2>
+              {!partnerDisplayName && (
+                <div className="partner-name-setup">
+                  <p className="partner-name-label">¿Cómo se llama tu pareja?</p>
+                  <div className="partner-name-row">
+                    <input
+                      className="partner-name-input"
+                      placeholder="Nombre de tu pareja"
+                      value={partnerNameInput}
+                      onChange={e => setPartnerNameInput(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && partnerNameInput.trim() && handleSetPartnerName(partnerNameInput.trim())}
+                    />
+                    <button
+                      className="partner-name-btn"
+                      onClick={() => partnerNameInput.trim() && handleSetPartnerName(partnerNameInput.trim())}
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+              )}
             </header>
 
             <div className="profile-cards-grid">
-              {/* Card 1: Stev */}
+              {/* Card 1: Él */}
               <div className="profile-card">
                 <div className="profile-avatar-wrapper">
                   <span style={{ fontSize: '2.5rem' }}>👑</span>
                 </div>
-                <h3 className="profile-name">Stev</h3>
+                <h3 className="profile-name">{getUserName("él")}</h3>
                 <span className="profile-tag">El chico de las espinas</span>
                 <p className="profile-bio">
                   "Luchando cada día por aprender a quererte mejor, superar mis propios límites y cuidarte como te mereces."
@@ -963,12 +1032,12 @@ export default function Home() {
                 <span className="profile-heart-label">Amor Real</span>
               </div>
 
-              {/* Card 2: Susy */}
+              {/* Card 2: Ella */}
               <div className="profile-card">
                 <div className="profile-avatar-wrapper">
                   <span style={{ fontSize: '2.5rem' }}>🌹</span>
                 </div>
-                <h3 className="profile-name">Susy</h3>
+                <h3 className="profile-name">{getUserName("ella")}</h3>
                 <span className="profile-tag">Mi refugio eterno</span>
                 <p className="profile-bio">
                   "La paciencia que calma mis tormentas, el abrazo que me reconstruye y el amor incondicional que me inspira."
@@ -1273,11 +1342,7 @@ export default function Home() {
                       <div key={msg.id} className={`mensaje-bubble ${msg.author === 'ella' ? 'bubble-ella' : 'bubble-el'}`}>
                         <div className="mensaje-bubble-header">
                           <span className="mensaje-bubble-author">
-                            {currentUser === msg.author
-                              ? USER_LABELS[currentUser].emoji + " " + USER_LABELS[currentUser].self
-                              : (currentUser
-                                ? USER_LABELS[partnerId].emoji + " " + USER_LABELS[partnerId].partner
-                                : (msg.author === 'él' ? '👑 Él' : '🌹 Ella'))}
+                            {msg.author === "él" ? "👑" : "🌹"} {msg.author === currentUser ? "Yo" : getUserName(msg.author)}
                           </span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className="mensaje-bubble-time">{msg.date} · {msg.time}</span>
@@ -1302,7 +1367,7 @@ export default function Home() {
                 {/* Compose message (at bottom like WhatsApp) */}
                 <div className="mensajes-compose">
                   <div className="mensajes-compose-as">
-                    {currentUser === "él" ? "👑" : "🌹"} Escribiendo como {currentUser === "él" ? "Stev" : "Susy"}
+                    {currentUser === "él" ? "👑" : "🌹"} Escribiendo como {displayName}
                     <button className="mensajes-logout-btn" onClick={handleLogout}>Salir</button>
                   </div>
                   <textarea
@@ -1452,7 +1517,7 @@ export default function Home() {
                       <div className="salidas-card-header">
                         <span className="salidas-proposer">
                           {outing.proposer === "él" ? "👑" : "🌹"}{" "}
-                          {outing.proposer === "él" ? "Stev" : "Susy"}
+                          {getUserName(outing.proposer)}
                         </span>
                         <span className="salidas-date">{outing.date} · {outing.time}</span>
                       </div>
@@ -1526,13 +1591,13 @@ export default function Home() {
                       className={`diario-author-btn ${formAuthor === 'él' ? 'active-él' : ''}`}
                       onClick={() => setFormAuthor('él')}
                     >
-                      👑 Stev
+                      👑 {getUserName("él")}
                     </button>
                     <button
                       className={`diario-author-btn ${formAuthor === 'ella' ? 'active-ella' : ''}`}
                       onClick={() => setFormAuthor('ella')}
                     >
-                      🌹 Susy
+                      🌹 {getUserName("ella")}
                     </button>
                   </div>
                 </div>
@@ -1622,7 +1687,7 @@ export default function Home() {
                         </span>
                         <div className="memoria-author-info">
                           <span className="memoria-author-name">
-                            {memory.author === 'él' ? 'Stev' : 'Susy'}
+                            {memory.author === 'él' ? getUserName('él') : getUserName('ella')}
                           </span>
                           <span className="memoria-date">
                             {memory.date} · {memory.time}
@@ -1652,7 +1717,7 @@ export default function Home() {
 
                     <div className="memoria-footer-bar">
                       <span className={`memoria-badge ${memory.author === 'ella' ? 'badge-ella' : 'badge-el'}`}>
-                        {memory.author === 'él' ? '👑 Publicado por Stev' : '🌹 Publicado por Susy'}
+                        {memory.author === 'él' ? '👑 Publicado por ' + getUserName('él') : '🌹 Publicado por ' + getUserName('ella')}
                       </span>
                     </div>
                   </div>

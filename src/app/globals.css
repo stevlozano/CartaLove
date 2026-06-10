@@ -2714,6 +2714,109 @@ html, body {
   color: var(--primary-glow);
 }
 
+/* Partner Name Setup */
+.partner-name-setup {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.partner-name-label {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 8px;
+}
+
+.partner-name-row {
+  display: flex;
+  gap: 8px;
+}
+
+.partner-name-input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(169, 16, 21, 0.25);
+  background: rgba(0,0,0,0.3);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.partner-name-input:focus {
+  border-color: var(--primary-glow);
+}
+
+.partner-name-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #a91015 0%, #680508 100%);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.3s;
+}
+
+.partner-name-btn:hover {
+  filter: brightness(1.2);
+}
+
+/* Login role selection */
+.login-role-group {
+  margin: 12px 0;
+}
+
+.login-role-label {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin: 0 0 8px;
+}
+
+.login-role-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.login-role-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid rgba(169, 16, 21, 0.3);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.3);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.login-role-btn.active-él {
+  border-color: var(--primary-glow);
+  background: rgba(169, 16, 21, 0.15);
+  color: var(--accent-gold);
+}
+
+.login-role-btn.active-ella {
+  border-color: var(--primary-glow);
+  background: rgba(169, 16, 21, 0.15);
+  color: var(--accent-gold);
+}
+
 /* Salidas (Outings) Section */
 .salidas-container {
   width: 100%;
