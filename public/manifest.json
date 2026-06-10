@@ -1,0 +1,17 @@
+{
+  "name": "Carta - Para Ti",
+  "short_name": "Carta",
+  "description": "Una carta de amor interactiva para ti",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050202",
+  "theme_color": "#050202",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

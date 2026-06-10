@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ref, set, remove, onValue, child } from "firebase/database";
-import { db } from "@/lib/firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 
 // Types for components
 interface FloatingHeart {
@@ -84,25 +85,98 @@ export default function Home() {
   const [formAuthor, setFormAuthor] = useState<"él" | "ella">("él");
   const [formImage, setFormImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedFileRef = useRef<File | null>(null);
 
-  // Load memories from localStorage on mount
+  // PWA install state
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  // PWA: register service worker, handle install prompt
   useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+
+    const handleAppInstalled = () => {
+      setShowInstallBanner(false);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    (installPrompt as any).prompt();
+    const result = await (installPrompt as any).userChoice;
+    if (result.outcome === 'accepted') {
+      setShowInstallBanner(false);
+      setInstallPrompt(null);
+    }
+  };
+
+  // Listen for real-time memories from Firebase
+  useEffect(() => {
+    const memoriesRef = ref(db, 'memories');
+
+    // Migrate existing localStorage memories to Firebase
     const stored = localStorage.getItem("carta_memories");
     if (stored) {
       try {
-        setMemories(JSON.parse(stored));
+        const localMemories = JSON.parse(stored) as MemoryEntry[];
+        if (localMemories.length > 0) {
+          localMemories.forEach((mem) => {
+            set(child(memoriesRef, String(mem.id)), {
+              id: mem.id,
+              imageData: mem.imageData,
+              title: mem.title,
+              description: mem.description,
+              author: mem.author,
+              date: mem.date,
+              time: mem.time,
+            }).catch((err) => console.error("Firebase migration error:", err));
+          });
+        }
+        localStorage.removeItem("carta_memories");
       } catch {}
     }
-  }, []);
 
-  // Save memories to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("carta_memories", JSON.stringify(memories));
-  }, [memories]);
+    const unsubscribe = onValue(memoriesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const list = Object.keys(data).map((key) => ({
+          ...data[key],
+        })) as MemoryEntry[];
+        list.sort((a, b) => b.id - a.id);
+        setMemories(list);
+      } else {
+        setMemories([]);
+      }
+    }, (err) => {
+      console.error("Firebase memories listener error:", err);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    selectedFileRef.current = file;
     const reader = new FileReader();
     reader.onload = (ev) => {
       setFormImage(ev.target?.result as string);
@@ -110,19 +184,35 @@ export default function Home() {
     reader.readAsDataURL(file);
   };
 
-  const addMemory = () => {
+  const addMemory = async () => {
     if (!formImage || !formTitle.trim() || !formDesc.trim()) return;
     const now = new Date();
+    const id = Date.now();
+    let imageUrl = formImage;
+
+    // Upload image to Firebase Storage if file is available
+    if (selectedFileRef.current) {
+      try {
+        const imgRef = storageRef(storage, `memories/${id}`);
+        await uploadBytes(imgRef, selectedFileRef.current);
+        imageUrl = await getDownloadURL(imgRef);
+      } catch (err) {
+        console.error("Firebase upload error:", err);
+      }
+      selectedFileRef.current = null;
+    }
+
     const entry: MemoryEntry = {
-      id: Date.now(),
-      imageData: formImage,
+      id,
+      imageData: imageUrl,
       title: formTitle.trim(),
       description: formDesc.trim(),
       author: formAuthor,
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
-    setMemories(prev => [entry, ...prev]);
+    set(child(ref(db, 'memories'), String(id)), entry)
+      .catch((err) => console.error("Firebase memory save error:", err));
     setFormImage(null);
     setFormTitle("");
     setFormDesc("");
@@ -131,8 +221,19 @@ export default function Home() {
     spawnHearts(formAuthor === "ella" ? "gold" : "crimson");
   };
 
-  const deleteMemory = (id: number) => {
-    setMemories(prev => prev.filter(m => m.id !== id));
+  const deleteMemory = async (id: number) => {
+    // Delete image from Firebase Storage
+    try {
+      const imgRef = storageRef(storage, `memories/${id}`);
+      await deleteObject(imgRef);
+    } catch (err: any) {
+      if (err.code !== 'storage/object-not-found') {
+        console.error("Firebase storage delete error:", err);
+      }
+    }
+    // Delete entry from Firebase RTDB
+    remove(child(ref(db, 'memories'), String(id)))
+      .catch((err) => console.error("Firebase memory remove error:", err));
   };
 
   // Messages / Poems state (Reconciliation chat)
@@ -153,7 +254,8 @@ export default function Home() {
         const localMessages = JSON.parse(stored) as MessageEntry[];
         if (localMessages.length > 0) {
           localMessages.forEach((msg) => {
-            set(child(messagesRef, String(msg.id)), msg);
+            set(child(messagesRef, String(msg.id)), msg)
+              .catch((err) => console.error("Firebase migration error:", err));
           });
         }
         localStorage.removeItem("carta_messages");
@@ -172,6 +274,8 @@ export default function Home() {
       } else {
         setMessages([]);
       }
+    }, (err) => {
+      console.error("Firebase listener error:", err);
     });
 
     return unsubscribe;
@@ -196,7 +300,8 @@ export default function Home() {
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
-    set(child(ref(db, 'messages'), String(id)), entry);
+    set(child(ref(db, 'messages'), String(id)), entry)
+      .catch((err) => console.error("Firebase send error:", err));
     setNewMessage("");
 
     // Show notification to the partner
@@ -211,7 +316,8 @@ export default function Home() {
   };
 
   const deleteMessage = (id: number) => {
-    remove(child(ref(db, 'messages'), String(id)));
+    remove(child(ref(db, 'messages'), String(id)))
+      .catch((err) => console.error("Firebase remove error:", err));
   };
 
   // Couple time delta state
@@ -1355,6 +1461,19 @@ export default function Home() {
       <div className={`audio-banner ${audioBanner ? 'active' : ''}`}>
         <span className="audio-banner-text">🎵 Se recomienda activar la música para la experiencia</span>
         <button className="audio-banner-btn" onClick={acceptAudio}>Activar</button>
+      </div>
+
+      {/* PWA Install Banner */}
+      <div className={`pwa-install-banner ${showInstallBanner ? 'active' : ''}`}>
+        <div className="pwa-install-content">
+          <span className="pwa-install-icon">📱</span>
+          <div className="pwa-install-text">
+            <span className="pwa-install-title">Instala Carta</span>
+            <span className="pwa-install-sub">Guarda esta carta en tu pantalla como una app</span>
+          </div>
+          <button className="pwa-install-btn" onClick={handleInstall}>Instalar</button>
+          <button className="pwa-install-close" onClick={() => setShowInstallBanner(false)}>✕</button>
+        </div>
       </div>
     </div>
   );

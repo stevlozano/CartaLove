@@ -18,12 +18,22 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Perdón, Mi Amor | Para Ti ❤️",
   description: "Una carta abierta desde el fondo de mi corazón. Te amo mucho y lo siento...",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Carta - Para Ti",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#050202",
 };
 
 export default function RootLayout({
