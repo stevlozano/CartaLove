@@ -1,0 +1,19 @@
+Título de la notificación
+Ingresa un título opcional
+Texto de la notificación
+Ingresar texto de la notificación
+Imagen de notificación (opcional)
+Ejemplo: https://tuapp.com/imagen.png
+Nombre de la notificación (opcional)
+Ingresar nombre opcional
+Vista previa del dispositivo
+En esta vista previa, se ofrece una idea general de cómo se mostrará tu mensaje en un dispositivo móvil. La apariencia real del mensaje varía en función del dispositivo. Para obtener resultados precisos, prueba con un dispositivo real.
+
+
+
+Notification Title
+Notification Text
+Enter alt text here
+Android
+Notification Title
+Notification Text
