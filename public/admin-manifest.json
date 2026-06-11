@@ -1,0 +1,17 @@
+{
+  "name": "Admin Carta",
+  "short_name": "Admin Carta",
+  "description": "Panel de administración Carta",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "background_color": "#050202",
+  "theme_color": "#050202",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

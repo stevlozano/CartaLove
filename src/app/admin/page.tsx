@@ -32,6 +32,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"calendario" | "actividad" | "salidas">("calendario");
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/data")
@@ -42,6 +43,28 @@ export default function AdminPage() {
       })
       .catch(console.error);
   }, []);
+
+  // Admin PWA registration
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/admin-sw.js", { scope: "/admin" });
+    }
+  }, []);
+
+  // PWA install prompt for admin
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    (installPrompt as any).prompt();
+    const result = await (installPrompt as any).userChoice;
+    if (result.outcome === 'accepted') setInstallPrompt(null);
+  };
 
   const now = new Date();
   const year = now.getFullYear();
@@ -91,18 +114,16 @@ export default function AdminPage() {
 
   return (
     <div style={styles.wrapper}>
-      <nav style={styles.nav}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={styles.brand}>CARTA ADMIN</span>
-        </div>
-        <div style={styles.navRight}>
-          <button onClick={() => setTab("calendario")} style={{ ...styles.navBtn, ...(tab === "calendario" ? styles.navBtnActive : {}) }}>calendario</button>
-          <button onClick={() => setTab("actividad")} style={{ ...styles.navBtn, ...(tab === "actividad" ? styles.navBtnActive : {}) }}>actividad</button>
-          <button onClick={() => setTab("salidas")} style={{ ...styles.navBtn, ...(tab === "salidas" ? styles.navBtnActive : {}) }}>salidas</button>
-        </div>
-      </nav>
+      <div style={styles.brandBar}>CARTA ADMIN</div>
 
       <main style={styles.main}>
+        {installPrompt && (
+          <div style={styles.installBanner}>
+            <span>Instala Admin Carta</span>
+            <button onClick={handleInstall} style={styles.installBtn}>Instalar</button>
+            <button onClick={() => setInstallPrompt(null)} style={styles.installClose}>✕</button>
+          </div>
+        )}
         {tab === "calendario" && (
           <>
             <div style={styles.calHeader}>
@@ -225,6 +246,27 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+
+      <nav style={styles.bottomNav}>
+        <button onClick={() => setTab("calendario")} style={{ ...styles.tab, ...(tab === "calendario" ? styles.tabActive : {}) }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </button>
+        <button onClick={() => setTab("actividad")} style={{ ...styles.tab, ...(tab === "actividad" ? styles.tabActive : {}) }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </button>
+        <button onClick={() => setTab("salidas")} style={{ ...styles.tab, ...(tab === "salidas" ? styles.tabActive : {}) }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </button>
+      </nav>
     </div>
   );
 }
@@ -237,45 +279,53 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "system-ui, -apple-system, sans-serif",
     display: "flex",
     flexDirection: "column",
+    paddingBottom: 64,
   },
-  nav: {
+  brandBar: {
     height: 50,
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     padding: "0 24px",
     borderBottom: "1px solid rgba(229, 62, 62, 0.3)",
     flexShrink: 0,
-  },
-  brand: {
     fontWeight: 800,
     fontSize: "0.7rem",
     textTransform: "uppercase",
     letterSpacing: "0.25em",
     color: "#e53e3e",
   },
-  navRight: { display: "flex", gap: 4 },
-  navBtn: {
-    border: "1px solid #e53e3e",
-    borderRadius: 30,
-    background: "transparent",
-    color: "#f5d6d6",
-    padding: "6px 18px",
-    fontSize: "0.65rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    textTransform: "uppercase",
-    letterSpacing: "0.1em",
-    transition: "all 0.15s",
+  bottomNav: {
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 64,
+    background: "#0e0707",
+    borderTop: "1px solid rgba(229, 62, 62, 0.25)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-around",
+    zIndex: 100,
   },
-  navBtnActive: {
-    background: "rgba(229, 62, 62, 0.2)",
-    color: "#fff",
-    borderColor: "#fff",
+  tab: {
+    background: "transparent",
+    border: "none",
+    color: "#c4a8a8",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "8px 20px",
+    transition: "color 0.15s",
+  },
+  tabActive: {
+    color: "#e53e3e",
   },
   main: {
     flex: 1,
-    padding: "32px 24px",
+    padding: "24px 20px",
     maxWidth: 700,
     margin: "0 auto",
     width: "100%",
@@ -427,5 +477,35 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     letterSpacing: "0.15em",
     marginTop: 20,
+  },
+  installBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 16px",
+    border: "1px solid rgba(229, 62, 62, 0.3)",
+    borderRadius: 30,
+    marginBottom: 20,
+    fontSize: "0.8rem",
+    color: "#f5d6d6",
+  },
+  installBtn: {
+    marginLeft: "auto",
+    border: "1px solid #e53e3e",
+    borderRadius: 30,
+    background: "transparent",
+    color: "#fff",
+    padding: "6px 16px",
+    fontSize: "0.7rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  installClose: {
+    border: "none",
+    background: "transparent",
+    color: "#c4a8a8",
+    cursor: "pointer",
+    fontSize: "1rem",
+    padding: 4,
   },
 };
