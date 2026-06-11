@@ -125,7 +125,7 @@ export default function Home() {
       display_name: name,
       type: "login",
       created_at: new Date().toISOString(),
-    });
+    }).then(() => {});
   };
 
   const handleLogout = () => {
@@ -134,7 +134,7 @@ export default function Home() {
       display_name: displayName,
       type: "logout",
       created_at: new Date().toISOString(),
-    });
+    }).then(() => {});
     setCurrentUser(null);
     localStorage.removeItem("carta_user");
   };
