@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,3 +17,14 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const db = getDatabase(app);
 export const storage = getStorage(app);
+
+let messaging: ReturnType<typeof getMessaging> | null = null;
+
+export async function getMessagingInstance() {
+  if (messaging) return messaging;
+  const supported = await isSupported();
+  if (supported) {
+    messaging = getMessaging(app);
+  }
+  return messaging;
+}

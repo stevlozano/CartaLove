@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { ref, set, remove, onValue, child } from "firebase/database";
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
+import { getToken, onMessage } from "firebase/messaging";
+import { db, storage, getMessagingInstance } from "@/lib/firebase";
 
 // Types for components
 interface FloatingHeart {
@@ -50,6 +51,7 @@ interface MessageEntry {
   id: number;
   text: string;
   author: "él" | "ella";
+  authorName: string;
   date: string;
   time: string;
 }
@@ -57,6 +59,7 @@ interface MessageEntry {
 interface OutingEntry {
   id: number;
   proposer: "él" | "ella";
+  proposerName: string;
   title: string;
   description: string;
   location: string;
@@ -170,10 +173,11 @@ export default function Home() {
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  // PWA: register service worker, handle install prompt
+  // PWA: register service workers, handle install prompt, init FCM
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
+      navigator.serviceWorker.register('/firebase-messaging-sw.js');
     }
 
     if (window.matchMedia('(display-mode: standalone)').matches) return;
@@ -372,12 +376,14 @@ export default function Home() {
       id,
       text: newMessage.trim(),
       author: currentUser || "él",
+      authorName: displayName || (currentUser === "él" ? "Él" : "Ella"),
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
     set(child(ref(db, 'messages'), String(id)), entry)
       .then(() => {
         setToastMsg("");
+        notifyPartner(`💌 Nuevo mensaje de ${displayName}`, entry.text);
       })
       .catch((err) => {
         console.error("Firebase send error:", err);
@@ -437,6 +443,7 @@ export default function Home() {
     const entry: OutingEntry = {
       id,
       proposer: currentUser || "él",
+      proposerName: displayName || (currentUser === "él" ? "Él" : "Ella"),
       title: newOutingTitle.trim(),
       description: newOutingDesc.trim(),
       location: newOutingLocation.trim(),
@@ -448,7 +455,7 @@ export default function Home() {
     set(child(ref(db, 'outings'), String(id)), entry)
       .then(() => {
         setToastMsg("");
-        notifyPartner("💡 Nueva salida propuesta", entry.title);
+        notifyPartner(`💡 ${displayName} propuso una salida`, entry.title);
       })
       .catch((err) => {
         console.error("Firebase outing error:", err);
@@ -478,12 +485,50 @@ export default function Home() {
       .catch((err) => console.error("Firebase remove outing error:", err));
   };
 
-  // Request notification permission on first user interaction
+  // Request notification permission and register FCM token
   useEffect(() => {
-    if (currentUser && "Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
+    if (!currentUser) return;
+    if (!("Notification" in window)) return;
+
+    const initFCM = async () => {
+      if (Notification.permission === "default") {
+        await Notification.requestPermission();
+      }
+      if (Notification.permission !== "granted") return;
+
+      const messaging = await getMessagingInstance();
+      if (!messaging) return;
+
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey) return;
+
+      try {
+        const token = await getToken(messaging, { vapidKey });
+        if (token) {
+          set(ref(db, `fcmTokens/${currentUser}`), token).catch(() => {});
+        }
+      } catch (err) {
+        console.error("FCM token error:", err);
+      }
+    };
+
+    initFCM();
   }, [currentUser]);
+
+  // Listen for foreground FCM messages
+  useEffect(() => {
+    const init = async () => {
+      const messaging = await getMessagingInstance();
+      if (!messaging) return;
+      onMessage(messaging, (payload) => {
+        const { title, body } = payload.notification || {};
+        if (title) {
+          new Notification(title, { body: body || "", icon: "/favicon.ico" });
+        }
+      });
+    };
+    init();
+  }, []);
 
   // Couple time delta state
   const [timeTogether, setTimeTogether] = useState<TimeDelta>({
@@ -1342,7 +1387,7 @@ export default function Home() {
                       <div key={msg.id} className={`mensaje-bubble ${msg.author === 'ella' ? 'bubble-ella' : 'bubble-el'}`}>
                         <div className="mensaje-bubble-header">
                           <span className="mensaje-bubble-author">
-                            {msg.author === "él" ? "👑" : "🌹"} {msg.author === currentUser ? "Yo" : getUserName(msg.author)}
+                            {msg.author === "él" ? "👑" : "🌹"} {msg.author === currentUser ? "Yo" : (msg.authorName || getUserName(msg.author))}
                           </span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className="mensaje-bubble-time">{msg.date} · {msg.time}</span>
@@ -1517,7 +1562,7 @@ export default function Home() {
                       <div className="salidas-card-header">
                         <span className="salidas-proposer">
                           {outing.proposer === "él" ? "👑" : "🌹"}{" "}
-                          {getUserName(outing.proposer)}
+                          {outing.proposer === currentUser ? "Yo" : (outing.proposerName || getUserName(outing.proposer))}
                         </span>
                         <span className="salidas-date">{outing.date} · {outing.time}</span>
                       </div>

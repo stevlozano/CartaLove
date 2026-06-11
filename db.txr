@@ -106,3 +106,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+
+
+
+
+vapid: BKxWv6FE2zdmv-M0Eq62bzXewbHg0lDAyYpYOeOhdWZY1cLHl3OQTbSIoH7G925JCHNwot8-0MozBf2TJuVMMKA
