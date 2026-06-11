@@ -36,7 +36,7 @@ interface TimeDelta {
 
 interface MemoryEntry {
   id: number;
-  imageData: string;
+  image_data: string;
   title: string;
   description: string;
   author: "él" | "ella";
@@ -48,7 +48,7 @@ interface MessageEntry {
   id: number;
   text: string;
   author: "él" | "ella";
-  authorName: string;
+  author_name: string;
   date: string;
   time: string;
 }
@@ -56,7 +56,7 @@ interface MessageEntry {
 interface OutingEntry {
   id: number;
   proposer: "él" | "ella";
-  proposerName: string;
+  proposer_name: string;
   title: string;
   description: string;
   location: string;
@@ -279,7 +279,7 @@ export default function Home() {
 
     const entry: MemoryEntry = {
       id,
-      imageData: imageUrl,
+      image_data: imageUrl,
       title: formTitle.trim(),
       description: formDesc.trim(),
       author: formAuthor,
@@ -326,7 +326,7 @@ export default function Home() {
         (payload) => {
           const msg = payload.new as MessageEntry;
           if (currentUser && msg.author === partnerId) {
-            notifyPartner(`💌 ${msg.authorName || "Tu pareja"} te escribió`, msg.text);
+            notifyPartner(`💌 ${msg.author_name || "Tu pareja"} te escribió`, msg.text);
           }
           fetchMessages();
         }
@@ -370,7 +370,7 @@ export default function Home() {
       id,
       text: newMessage.trim(),
       author: currentUser || "él",
-      authorName: displayName || (currentUser === "él" ? "Él" : "Ella"),
+      author_name: displayName || (currentUser === "él" ? "Él" : "Ella"),
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
@@ -416,7 +416,7 @@ export default function Home() {
         (payload) => {
           const outing = payload.new as OutingEntry;
           if (currentUser && outing.proposer === partnerId) {
-            notifyPartner(`💡 ${outing.proposerName || "Tu pareja"} propuso una salida`, outing.title);
+            notifyPartner(`💡 ${outing.proposer_name || "Tu pareja"} propuso una salida`, outing.title);
           }
           fetchOutings();
         }
@@ -464,7 +464,7 @@ export default function Home() {
     const entry = {
       id,
       proposer: currentUser || "él",
-      proposerName: displayName || (currentUser === "él" ? "Él" : "Ella"),
+      proposer_name: displayName || (currentUser === "él" ? "Él" : "Ella"),
       title: newOutingTitle.trim(),
       description: newOutingDesc.trim(),
       location: newOutingLocation.trim(),
@@ -1376,7 +1376,7 @@ export default function Home() {
                       <div key={msg.id} className={`mensaje-bubble ${msg.author === 'ella' ? 'bubble-ella' : 'bubble-el'}`}>
                         <div className="mensaje-bubble-header">
                           <span className="mensaje-bubble-author">
-                            {msg.author === "él" ? "👑" : "🌹"} {msg.author === currentUser ? "Yo" : (msg.authorName || getUserName(msg.author))}
+                            {msg.author === "él" ? "👑" : "🌹"} {msg.author === currentUser ? "Yo" : (msg.author_name || getUserName(msg.author))}
                           </span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className="mensaje-bubble-time">{msg.date} · {msg.time}</span>
@@ -1551,7 +1551,7 @@ export default function Home() {
                       <div className="salidas-card-header">
                         <span className="salidas-proposer">
                           {outing.proposer === "él" ? "👑" : "🌹"}{" "}
-                          {outing.proposer === currentUser ? "Yo" : (outing.proposerName || getUserName(outing.proposer))}
+                          {outing.proposer === currentUser ? "Yo" : (outing.proposer_name || getUserName(outing.proposer))}
                         </span>
                         <span className="salidas-date">{outing.date} · {outing.time}</span>
                       </div>
@@ -1741,7 +1741,7 @@ export default function Home() {
 
                     <div className="memoria-image-wrapper">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={memory.imageData} alt={memory.title} loading="lazy" />
+                      <img src={memory.image_data} alt={memory.title} loading="lazy" />
                     </div>
 
                     <div className="memoria-body">
