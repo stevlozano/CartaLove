@@ -273,6 +273,8 @@ export default function Home() {
         imageUrl = urlData?.publicUrl || formImage;
       } catch (err) {
         console.error("Supabase upload error:", err);
+        setToastMsg("Error al subir la foto. ¿Creaste el bucket 'memories' en Supabase Storage?");
+        setTimeout(() => setToastMsg(""), 5000);
       }
       selectedFileRef.current = null;
     }
@@ -287,7 +289,12 @@ export default function Home() {
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
     const { error } = await supabase.from('memories').insert(entry);
-    if (error) console.error("Supabase memory save error:", error);
+    if (error) {
+      console.error("Supabase memory save error:", error);
+      setToastMsg("Error al guardar el recuerdo. ¿Ejecutaste el SQL en Supabase?");
+      setTimeout(() => setToastMsg(""), 5000);
+      return;
+    }
     setFormImage(null);
     setFormTitle("");
     setFormDesc("");
