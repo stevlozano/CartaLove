@@ -120,6 +120,11 @@ export default function Home() {
       localStorage.setItem("carta_partner_name", loginPartnerName.trim());
     }
     setLoginError("");
+    supabase.from("login_log").insert({
+      user_id: loginRole,
+      display_name: name,
+      created_at: new Date().toISOString(),
+    });
   };
 
   const handleLogout = () => {
@@ -1760,7 +1765,7 @@ export default function Home() {
                 </div>
               ) : (
                 memories.map((memory) => (
-                  <div key={memory.id} className={`memoria-card ${memory.author === 'ella' ? 'memoria-ella' : 'memoria-el'}`}>
+                  <div key={memory.id} className={`memoria-card ${memory.author === 'ella' ? 'memoria-ella' : 'memoria-el'}`} onClick={() => setViewingMemory(memory)}>
                     <div className="memoria-card-header">
                       <div className="memoria-author">
                         <span className="memoria-avatar">
@@ -1777,7 +1782,7 @@ export default function Home() {
                       </div>
                       <button
                         className="memoria-delete"
-                        onClick={() => deleteMemory(memory.id)}
+                        onClick={(e) => { e.stopPropagation(); deleteMemory(memory.id); }}
                         title="Eliminar recuerdo"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -1786,7 +1791,7 @@ export default function Home() {
                       </button>
                     </div>
 
-                    <div className="memoria-image-wrapper" onClick={() => setViewingMemory(memory)}>
+                    <div className="memoria-image-wrapper">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={memory.image_data} alt={memory.title} loading="lazy" />
                     </div>
