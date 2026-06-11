@@ -159,6 +159,7 @@ export default function Home() {
   const [formDesc, setFormDesc] = useState("");
   const [formAuthor, setFormAuthor] = useState<"él" | "ella">("él");
   const [formImage, setFormImage] = useState<string | null>(null);
+  const [viewingMemory, setViewingMemory] = useState<MemoryEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -273,8 +274,7 @@ export default function Home() {
         imageUrl = urlData?.publicUrl || formImage;
       } catch (err) {
         console.error("Supabase upload error:", err);
-        setToastMsg("Error al subir la foto. ¿Creaste el bucket 'memories' en Supabase Storage?");
-        setTimeout(() => setToastMsg(""), 5000);
+        // Keep using base64 fallback silently — no error toast
       }
       selectedFileRef.current = null;
     }
@@ -295,6 +295,8 @@ export default function Home() {
       setTimeout(() => setToastMsg(""), 5000);
       return;
     }
+    setToastMsg("¡Foto subida con éxito!");
+    setTimeout(() => setToastMsg(""), 5000);
     setFormImage(null);
     setFormTitle("");
     setFormDesc("");
@@ -1746,7 +1748,7 @@ export default function Home() {
                       </button>
                     </div>
 
-                    <div className="memoria-image-wrapper">
+                    <div className="memoria-image-wrapper" onClick={() => setViewingMemory(memory)}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={memory.image_data} alt={memory.title} loading="lazy" />
                     </div>
@@ -1769,6 +1771,38 @@ export default function Home() {
         )}
 
       </div>
+
+      {/* Memory Viewer Overlay */}
+      {viewingMemory && (
+        <div className="memory-viewer-overlay" onClick={() => setViewingMemory(null)}>
+          <div className="memory-viewer-content" onClick={(e) => e.stopPropagation()}>
+            <button className="memory-viewer-close" onClick={() => setViewingMemory(null)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
+            </button>
+            <div className="memory-viewer-image">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={viewingMemory.image_data} alt={viewingMemory.title} />
+            </div>
+            <div className="memory-viewer-info">
+              <div className="memory-viewer-meta">
+                <span className="memory-viewer-avatar">
+                  {viewingMemory.author === 'él' ? '👑' : '🌹'}
+                </span>
+                <span className="memory-viewer-author">
+                  {viewingMemory.author === 'él' ? getUserName('él') : getUserName('ella')}
+                </span>
+                <span className="memory-viewer-date">
+                  {viewingMemory.date} · {viewingMemory.time}
+                </span>
+              </div>
+              <h3 className="memory-viewer-title">{viewingMemory.title}</h3>
+              <p className="memory-viewer-desc">{viewingMemory.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Hearts Spray Layer */}
       <div className="heart-burst-layer">
