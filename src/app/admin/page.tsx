@@ -6,6 +6,7 @@ interface LoginLog {
   id: number;
   user_id: string;
   display_name: string;
+  type: string;
   created_at: string;
 }
 
@@ -48,6 +49,8 @@ export default function AdminPage() {
     });
   };
 
+  const icon = (t: string) => t === "login" ? "◀" : "▶";
+
   return (
     <div style={styles.wrapper}>
       <nav style={styles.nav}>
@@ -60,7 +63,7 @@ export default function AdminPage() {
               ...(tab === "logins" ? styles.navBtnActive : {}),
             }}
           >
-            accesos
+            entradas / salidas
           </button>
           <button
             onClick={() => setTab("outings")}
@@ -81,8 +84,18 @@ export default function AdminPage() {
             {logins.map((log) => (
               <div key={log.id} style={styles.card}>
                 <div style={styles.cardTop}>
-                  <span style={styles.name}>{log.display_name}</span>
-                  <span style={styles.badge}>
+                  <span>
+                    <span style={styles.name}>
+                      {icon(log.type)} {log.display_name}
+                    </span>
+                    <span style={styles.type}>
+                      {log.type === "login" ? " entró" : " salió"}
+                    </span>
+                  </span>
+                  <span style={{
+                    ...styles.badge,
+                    ...(log.user_id === "ella" ? styles.badgeElla : {}),
+                  }}>
                     {log.user_id === "él" ? "él" : "ella"}
                   </span>
                 </div>
@@ -101,7 +114,7 @@ export default function AdminPage() {
                     style={{
                       ...styles.badge,
                       ...(o.status === "chosen"
-                        ? { background: "#000", color: "#fff" }
+                        ? { borderColor: "#e53e3e", color: "#e53e3e" }
                         : {}),
                     }}
                   >
@@ -128,8 +141,8 @@ export default function AdminPage() {
 const styles: Record<string, React.CSSProperties> = {
   wrapper: {
     minHeight: "100vh",
-    background: "#fff",
-    color: "#000",
+    background: "#050202",
+    color: "#fff",
     fontFamily: "system-ui, -apple-system, sans-serif",
     display: "flex",
     flexDirection: "column",
@@ -140,7 +153,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     padding: "0 24px",
-    borderBottom: "1px solid #000",
+    borderBottom: "1px solid rgba(229, 62, 62, 0.3)",
     flexShrink: 0,
   },
   brand: {
@@ -148,18 +161,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.75rem",
     textTransform: "uppercase",
     letterSpacing: "0.2em",
+    color: "#e53e3e",
   },
   navRight: {
     display: "flex",
     gap: 4,
   },
   navBtn: {
-    border: "1px solid #000",
+    border: "1px solid #e53e3e",
     borderRadius: 30,
     background: "transparent",
-    color: "#000",
+    color: "#f5d6d6",
     padding: "6px 18px",
-    fontSize: "0.75rem",
+    fontSize: "0.7rem",
     fontWeight: 600,
     cursor: "pointer",
     textTransform: "uppercase",
@@ -167,8 +181,9 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all 0.15s",
   },
   navBtnActive: {
-    background: "#000",
+    background: "rgba(229, 62, 62, 0.2)",
     color: "#fff",
+    borderColor: "#fff",
   },
   main: {
     flex: 1,
@@ -183,9 +198,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
   },
   card: {
-    border: "1px solid #000",
+    border: "1px solid rgba(229, 62, 62, 0.25)",
     borderRadius: 30,
     padding: "16px 20px",
+    background: "rgba(14, 7, 7, 0.6)",
   },
   cardTop: {
     display: "flex",
@@ -197,31 +213,41 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     fontSize: "0.95rem",
   },
+  type: {
+    fontSize: "0.8rem",
+    color: "#c4a8a8",
+    marginLeft: 4,
+  },
   badge: {
     fontSize: "0.65rem",
     textTransform: "uppercase",
     letterSpacing: "0.1em",
-    border: "1px solid #000",
+    border: "1px solid #c4a8a8",
     borderRadius: 30,
     padding: "2px 10px",
+    color: "#c4a8a8",
+  },
+  badgeElla: {
+    borderColor: "#f5d6d6",
+    color: "#f5d6d6",
   },
   time: {
     fontSize: "0.8rem",
-    color: "#666",
+    color: "#c4a8a8",
   },
   meta: {
     fontSize: "0.75rem",
-    color: "#666",
+    color: "#c4a8a8",
     marginBottom: 6,
   },
   desc: {
     fontSize: "0.8rem",
-    color: "#333",
+    color: "#fff",
     marginTop: 4,
   },
   empty: {
     textAlign: "center",
-    color: "#999",
+    color: "#c4a8a8",
     fontSize: "0.85rem",
     textTransform: "uppercase",
     letterSpacing: "0.15em",

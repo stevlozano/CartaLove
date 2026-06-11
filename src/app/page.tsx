@@ -123,11 +123,18 @@ export default function Home() {
     supabase.from("login_log").insert({
       user_id: loginRole,
       display_name: name,
+      type: "login",
       created_at: new Date().toISOString(),
     });
   };
 
   const handleLogout = () => {
+    supabase.from("login_log").insert({
+      user_id: currentUser,
+      display_name: displayName,
+      type: "logout",
+      created_at: new Date().toISOString(),
+    });
     setCurrentUser(null);
     localStorage.removeItem("carta_user");
   };
