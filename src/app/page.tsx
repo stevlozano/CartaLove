@@ -125,7 +125,7 @@ export default function Home() {
       display_name: name,
       type: "login",
       created_at: new Date().toISOString(),
-    }).then(() => {});
+    }).then((res: any) => { if (res?.error) console.error("login_log insert error:", res.error); });
   };
 
   const handleLogout = () => {
@@ -134,7 +134,7 @@ export default function Home() {
       display_name: displayName,
       type: "logout",
       created_at: new Date().toISOString(),
-    }).then(() => {});
+    }).then((res: any) => { if (res?.error) console.error("login_log insert error:", res.error); });
     setCurrentUser(null);
     localStorage.removeItem("carta_user");
   };
@@ -179,15 +179,53 @@ export default function Home() {
   // Toast feedback for errors
   const [toastMsg, setToastMsg] = useState("");
 
-  // PWA install state
+  // PWA install state + push subscription
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  // PWA: register service worker, handle install prompt
+  // PWA: register service worker, handle install prompt, subscribe to push
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
+    if (!currentUser) return;
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+
+    const init = async () => {
+      // Register SW and wait for it
+      let reg: ServiceWorkerRegistration;
+      try {
+        reg = await navigator.serviceWorker.register('/sw.js');
+      } catch {
+        return;
+      }
+
+      // Subscribe to push
+      try {
+        if (Notification.permission === "default") {
+          const result = await Notification.requestPermission();
+          if (result !== "granted") return;
+        }
+        if (Notification.permission !== "granted") return;
+
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          const keyBase64 = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+          const keyBytes = Uint8Array.from(atob(keyBase64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: keyBytes,
+          });
+        }
+
+        fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: currentUser, subscription: sub.toJSON() }),
+        }).catch(() => {});
+      } catch (err) {
+        console.error("Push subscription error:", err);
+      }
+    };
+
+    init();
 
     if (window.matchMedia('(display-mode: standalone)').matches) return;
 
@@ -209,7 +247,7 @@ export default function Home() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [currentUser]);
 
   const handleInstall = async () => {
     if (!installPrompt) return;
@@ -538,45 +576,6 @@ export default function Home() {
     const { error } = await supabase.from('outings').delete().eq('id', id);
     if (error) console.error("Supabase delete outing error:", error);
   };
-
-  // Request notification permission + subscribe to push
-  useEffect(() => {
-    if (!currentUser) return;
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
-
-    const setup = async () => {
-      try {
-        if (Notification.permission === "default") {
-          const result = await Notification.requestPermission();
-          if (result !== "granted") return;
-        }
-        if (Notification.permission !== "granted") return;
-
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (!reg) return;
-
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) {
-          const keyBase64 = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
-          const keyBytes = Uint8Array.from(atob(keyBase64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: keyBytes,
-          });
-        }
-
-        fetch("/api/push/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: currentUser, subscription: sub.toJSON() }),
-        }).catch(() => {});
-      } catch (err) {
-        console.error("Push subscription error:", err);
-      }
-    };
-
-    setup();
-  }, [currentUser]);
 
   // Couple time delta state
   const [timeTogether, setTimeTogether] = useState<TimeDelta>({
