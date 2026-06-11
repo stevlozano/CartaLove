@@ -21,7 +21,6 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Always fetch HTML from network (no cache) to get latest version
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).catch(() => caches.match('/manifest.json')));
     return;
@@ -36,6 +35,40 @@ self.addEventListener("fetch", (event) => {
           return response;
         });
       });
+    })
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = { title: "Carta", body: "", icon: "/favicon.ico" };
+  try {
+    if (event.data) {
+      data = JSON.parse(event.data.text());
+    }
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: "/favicon.ico",
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow("/");
+      }
     })
   );
 });

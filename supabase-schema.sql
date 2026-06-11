@@ -94,4 +94,22 @@ alter publication supabase_realtime add table messages;
 alter publication supabase_realtime add table memories;
 alter publication supabase_realtime add table outings;
 
+-- Tabla: push_subscriptions (for push notifications)
+create table if not exists push_subscriptions (
+  user_id text primary key,
+  subscription_json text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+alter table push_subscriptions enable row level security;
+
+create policy "Anyone can read push_subscriptions"
+  on push_subscriptions for select using (true);
+
+create policy "Anyone can upsert push_subscriptions"
+  on push_subscriptions for insert with check (true);
+
+create policy "Anyone can update push_subscriptions"
+  on push_subscriptions for update using (true);
+
 -- Storage bucket for memories (crear en Supabase Dashboard > Storage > Create bucket 'memories' con policy pública de lectura/escritura)

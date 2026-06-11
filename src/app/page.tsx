@@ -214,8 +214,12 @@ export default function Home() {
     const channel = supabase
       .channel('memories-channel')
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'memories' },
-        () => {
+        { event: 'INSERT', schema: 'public', table: 'memories' },
+        (payload) => {
+          const memory = payload.new as MemoryEntry;
+          if (currentUser && memory.author === partnerId) {
+            notifyPartner(`📸 ${getUserName(memory.author as UserId)} subió un recuerdo`, memory.title);
+          }
           fetchMemories();
         }
       )
@@ -226,7 +230,7 @@ export default function Home() {
     return () => {
       channel.unsubscribe();
     };
-  }, []);
+  }, [currentUser]);
 
   const fetchMemories = async () => {
     const { data, error } = await supabase
@@ -297,6 +301,7 @@ export default function Home() {
     }
     setToastMsg("¡Foto subida con éxito!");
     setTimeout(() => setToastMsg(""), 5000);
+    notifyPartner(`📸 ${displayName} subió un recuerdo`, entry.title);
     setFormImage(null);
     setFormTitle("");
     setFormDesc("");
@@ -401,12 +406,16 @@ export default function Home() {
     if (error) console.error("Supabase delete error:", error);
   };
 
-  // Notify partner via browser notification (desktop only)
+  // Notify partner via browser notification + push (even when app is closed)
   const notifyPartner = (title: string, body: string) => {
-    const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (!isMobile && "Notification" in window && Notification.permission === "granted") {
+    if ("Notification" in window && Notification.permission === "granted") {
       new Notification(title, { body, icon: "/favicon.ico" });
     }
+    fetch("/api/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target_user_id: partnerId, title, body }),
+    }).catch(() => {});
   };
 
   // Salidas (Outings) state
@@ -518,14 +527,43 @@ export default function Home() {
     if (error) console.error("Supabase delete outing error:", error);
   };
 
-  // Request notification permission for browser notifications
+  // Request notification permission + subscribe to push
   useEffect(() => {
     if (!currentUser) return;
-    if (!("Notification" in window)) return;
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
 
-    if (Notification.permission === "default") {
-      Notification.requestPermission();
-    }
+    const setup = async () => {
+      try {
+        if (Notification.permission === "default") {
+          const result = await Notification.requestPermission();
+          if (result !== "granted") return;
+        }
+        if (Notification.permission !== "granted") return;
+
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) return;
+
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          const keyBase64 = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+          const keyBytes = Uint8Array.from(atob(keyBase64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: keyBytes,
+          });
+        }
+
+        fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: currentUser, subscription: sub.toJSON() }),
+        }).catch(() => {});
+      } catch (err) {
+        console.error("Push subscription error:", err);
+      }
+    };
+
+    setup();
   }, [currentUser]);
 
   // Couple time delta state
