@@ -3079,4 +3079,46 @@ html, body {
     flex-direction: column;
     gap: 4px;
   }
+  .salidas-card-actions {
+    flex-direction: column;
+  }
+  .salidas-card-actions button {
+    width: 100%;
+    text-align: center;
+  }
+  .salidas-proposer {
+    font-size: 0.65rem;
+  }
+  .salidas-date {
+    font-size: 0.55rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .salidas-container {
+    padding: 12px 0;
+  }
+  .salidas-container > header {
+    padding: 0 8px;
+  }
+  .salidas-form {
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .salidas-card {
+    padding: 10px;
+    border-radius: 12px;
+  }
+  .salidas-card-title {
+    font-size: 0.9rem;
+  }
+  .salidas-card-desc {
+    font-size: 0.75rem;
+  }
+  .salidas-submit-btn,
+  .salidas-choose-btn,
+  .salidas-delete-btn {
+    font-size: 0.65rem;
+    padding: 8px 12px;
+  }
 }
