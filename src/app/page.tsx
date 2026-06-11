@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
-import { ref, set, remove, onValue, child } from "firebase/database";
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { getToken, onMessage } from "firebase/messaging";
-import { db, storage, getMessagingInstance } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 // Types for components
 interface FloatingHeart {
@@ -63,7 +60,7 @@ interface OutingEntry {
   title: string;
   description: string;
   location: string;
-  when: string;
+  when_field: string;
   status: "pending" | "chosen";
   date: string;
   time: string;
@@ -173,11 +170,10 @@ export default function Home() {
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  // PWA: register service workers, handle install prompt, init FCM
+  // PWA: register service worker, handle install prompt
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
-      navigator.serviceWorker.register('/firebase-messaging-sw.js');
     }
 
     if (window.matchMedia('(display-mode: standalone)').matches) return;
@@ -212,49 +208,36 @@ export default function Home() {
     }
   };
 
-  // Listen for real-time memories from Firebase
+  // Listen for real-time memories from Supabase
   useEffect(() => {
-    const memoriesRef = ref(db, 'memories');
-
-    // Migrate existing localStorage memories to Firebase
-    const stored = localStorage.getItem("carta_memories");
-    if (stored) {
-      try {
-        const localMemories = JSON.parse(stored) as MemoryEntry[];
-        if (localMemories.length > 0) {
-          localMemories.forEach((mem) => {
-            set(child(memoriesRef, String(mem.id)), {
-              id: mem.id,
-              imageData: mem.imageData,
-              title: mem.title,
-              description: mem.description,
-              author: mem.author,
-              date: mem.date,
-              time: mem.time,
-            }).catch((err) => console.error("Firebase migration error:", err));
-          });
+    const channel = supabase
+      .channel('memories-channel')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'memories' },
+        () => {
+          fetchMemories();
         }
-        localStorage.removeItem("carta_memories");
-      } catch {}
-    }
+      )
+      .subscribe();
 
-    const unsubscribe = onValue(memoriesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const list = Object.keys(data).map((key) => ({
-          ...data[key],
-        })) as MemoryEntry[];
-        list.sort((a, b) => b.id - a.id);
-        setMemories(list);
-      } else {
-        setMemories([]);
-      }
-    }, (err) => {
-      console.error("Firebase memories listener error:", err);
-    });
+    fetchMemories();
 
-    return unsubscribe;
+    return () => {
+      channel.unsubscribe();
+    };
   }, []);
+
+  const fetchMemories = async () => {
+    const { data, error } = await supabase
+      .from('memories')
+      .select('*')
+      .order('id', { ascending: false });
+    if (error) {
+      console.error("Supabase memories error:", error);
+      return;
+    }
+    setMemories(data || []);
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -273,14 +256,23 @@ export default function Home() {
     const id = Date.now();
     let imageUrl = formImage;
 
-    // Upload image to Firebase Storage if file is available
+    // Upload image to Supabase Storage if file is available
     if (selectedFileRef.current) {
       try {
-        const imgRef = storageRef(storage, `memories/${id}`);
-        await uploadBytes(imgRef, selectedFileRef.current);
-        imageUrl = await getDownloadURL(imgRef);
+        const fileExt = selectedFileRef.current.name.split('.').pop();
+        const fileName = `${id}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('memories')
+          .upload(fileName, selectedFileRef.current, {
+            contentType: selectedFileRef.current.type,
+          });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from('memories')
+          .getPublicUrl(fileName);
+        imageUrl = urlData?.publicUrl || formImage;
       } catch (err) {
-        console.error("Firebase upload error:", err);
+        console.error("Supabase upload error:", err);
       }
       selectedFileRef.current = null;
     }
@@ -294,8 +286,8 @@ export default function Home() {
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
-    set(child(ref(db, 'memories'), String(id)), entry)
-      .catch((err) => console.error("Firebase memory save error:", err));
+    const { error } = await supabase.from('memories').insert(entry);
+    if (error) console.error("Supabase memory save error:", error);
     setFormImage(null);
     setFormTitle("");
     setFormDesc("");
@@ -305,18 +297,19 @@ export default function Home() {
   };
 
   const deleteMemory = async (id: number) => {
-    // Delete image from Firebase Storage
+    // Delete image from Supabase Storage
     try {
-      const imgRef = storageRef(storage, `memories/${id}`);
-      await deleteObject(imgRef);
-    } catch (err: any) {
-      if (err.code !== 'storage/object-not-found') {
-        console.error("Firebase storage delete error:", err);
+      const { data: files } = await supabase.storage
+        .from('memories')
+        .list('', { search: String(id) });
+      if (files && files.length > 0) {
+        await supabase.storage.from('memories').remove([files[0].name]);
       }
+    } catch (err) {
+      console.error("Supabase storage delete error:", err);
     }
-    // Delete entry from Firebase RTDB
-    remove(child(ref(db, 'memories'), String(id)))
-      .catch((err) => console.error("Firebase memory remove error:", err));
+    // Delete entry from Supabase
+    await supabase.from('memories').delete().eq('id', id);
   };
 
   // Messages / Poems state (Reconciliation chat)
@@ -324,51 +317,52 @@ export default function Home() {
   const [newMessage, setNewMessage] = useState("");
   const [reconTab, setReconTab] = useState<"carta" | "mensajes">("carta");
 
-  // Listen for real-time messages from Firebase
+  // Listen for real-time messages from Supabase
   useEffect(() => {
-    const messagesRef = ref(db, 'messages');
-
-    // Migrate existing localStorage messages to Firebase
-    const stored = localStorage.getItem("carta_messages");
-    if (stored) {
-      try {
-        const localMessages = JSON.parse(stored) as MessageEntry[];
-        if (localMessages.length > 0) {
-          localMessages.forEach((msg) => {
-            set(child(messagesRef, String(msg.id)), msg)
-              .catch((err) => console.error("Firebase migration error:", err));
-          });
+    const channel = supabase
+      .channel('messages-channel')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const msg = payload.new as MessageEntry;
+          if (currentUser && msg.author === partnerId) {
+            notifyPartner(`💌 ${msg.authorName || "Tu pareja"} te escribió`, msg.text);
+          }
+          fetchMessages();
         }
-        localStorage.removeItem("carta_messages");
-      } catch {}
+      )
+      .on('postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'messages' },
+        () => fetchMessages()
+      )
+      .subscribe();
+
+    fetchMessages();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [currentUser]);
+
+  const fetchMessages = async () => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .order('id', { ascending: true });
+    if (error) {
+      console.error("Supabase messages error:", error);
+      return;
     }
-
-    // Listen for real-time updates
-    const unsubscribe = onValue(messagesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const list = Object.keys(data).map((key) => ({
-          ...data[key],
-        })) as MessageEntry[];
-        list.sort((a, b) => a.id - b.id);
-        setMessages(list);
-      } else {
-        setMessages([]);
-      }
-    }, (err) => {
-      console.error("Firebase listener error:", err);
-    });
-
-    return unsubscribe;
-  }, []);
+    setMessages(data || []);
+  };
 
   // Auto-scroll messages to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send a message (real-time via Firebase)
-  const sendMessage = () => {
+  // Send a message (real-time via Supabase)
+  const sendMessage = async () => {
     if (!newMessage.trim()) return;
     const now = new Date();
     const id = Date.now();
@@ -380,24 +374,22 @@ export default function Home() {
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
-    set(child(ref(db, 'messages'), String(id)), entry)
-      .then(() => {
-        setToastMsg("");
-        notifyPartner(`💌 Nuevo mensaje de ${displayName}`, entry.text);
-      })
-      .catch((err) => {
-        console.error("Firebase send error:", err);
-        setToastMsg("Error al enviar. Revisa las reglas de Firebase DB.");
-        setTimeout(() => setToastMsg(""), 5000);
-      });
+    const { error } = await supabase.from('messages').insert(entry);
+    if (error) {
+      console.error("Supabase send error:", error);
+      setToastMsg("Error al enviar. Revisa la conexión con Supabase.");
+      setTimeout(() => setToastMsg(""), 5000);
+    } else {
+      setToastMsg("");
+      notifyPartner(`💌 Nuevo mensaje de ${displayName}`, entry.text);
+    }
     setNewMessage("");
-
     spawnHearts(currentUser === "ella" ? "gold" : "crimson");
   };
 
-  const deleteMessage = (id: number) => {
-    remove(child(ref(db, 'messages'), String(id)))
-      .catch((err) => console.error("Firebase remove error:", err));
+  const deleteMessage = async (id: number) => {
+    const { error } = await supabase.from('messages').delete().eq('id', id);
+    if (error) console.error("Supabase delete error:", error);
   };
 
   // Notify partner via browser notification (desktop only)
@@ -415,53 +407,81 @@ export default function Home() {
   const [newOutingLocation, setNewOutingLocation] = useState("");
   const [newOutingWhen, setNewOutingWhen] = useState("");
 
-  // Listen for real-time outings from Firebase
+  // Listen for real-time outings from Supabase
   useEffect(() => {
-    const outingsRef = ref(db, 'outings');
-    const unsubscribe = onValue(outingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const list = Object.keys(data).map((key) => ({
-          ...data[key],
-        })) as OutingEntry[];
-        list.sort((a, b) => a.id - b.id);
-        setOutings(list);
-      } else {
-        setOutings([]);
-      }
-    }, (err) => {
-      console.error("Firebase outings listener error:", err);
-    });
-    return unsubscribe;
-  }, []);
+    const channel = supabase
+      .channel('outings-channel')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'outings' },
+        (payload) => {
+          const outing = payload.new as OutingEntry;
+          if (currentUser && outing.proposer === partnerId) {
+            notifyPartner(`💡 ${outing.proposerName || "Tu pareja"} propuso una salida`, outing.title);
+          }
+          fetchOutings();
+        }
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'outings' },
+        (payload) => {
+          const outing = payload.new as OutingEntry;
+          if (currentUser && outing.status === 'chosen' && outing.proposer !== currentUser) {
+            notifyPartner("🎉 Salida elegida", "Una salida ha sido seleccionada. ¡A prepararse!");
+          }
+          fetchOutings();
+        }
+      )
+      .on('postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'outings' },
+        () => fetchOutings()
+      )
+      .subscribe();
+
+    fetchOutings();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [currentUser]);
+
+  const fetchOutings = async () => {
+    const { data, error } = await supabase
+      .from('outings')
+      .select('*')
+      .order('id', { ascending: true });
+    if (error) {
+      console.error("Supabase outings error:", error);
+      return;
+    }
+    setOutings(data || []);
+  };
 
   // Propose a new outing
-  const proposeOuting = () => {
+  const proposeOuting = async () => {
     if (!newOutingTitle.trim()) return;
     const now = new Date();
     const id = Date.now();
-    const entry: OutingEntry = {
+    const entry = {
       id,
       proposer: currentUser || "él",
       proposerName: displayName || (currentUser === "él" ? "Él" : "Ella"),
       title: newOutingTitle.trim(),
       description: newOutingDesc.trim(),
       location: newOutingLocation.trim(),
-      when: newOutingWhen.trim(),
+      when_field: newOutingWhen.trim(),
       status: "pending",
       date: now.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
       time: now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
     };
-    set(child(ref(db, 'outings'), String(id)), entry)
-      .then(() => {
-        setToastMsg("");
-        notifyPartner(`💡 ${displayName} propuso una salida`, entry.title);
-      })
-      .catch((err) => {
-        console.error("Firebase outing error:", err);
-        setToastMsg("Error al crear salida. Revisa reglas de Firebase DB.");
-        setTimeout(() => setToastMsg(""), 5000);
-      });
+    const { error } = await supabase.from('outings').insert(entry);
+    if (error) {
+      console.error("Supabase outing error:", error);
+      setToastMsg("Error al crear salida. Revisa la conexión con Supabase.");
+      setTimeout(() => setToastMsg(""), 5000);
+    } else {
+      setToastMsg("");
+      notifyPartner(`💡 ${displayName} propuso una salida`, entry.title);
+    }
     setNewOutingTitle("");
     setNewOutingDesc("");
     setNewOutingLocation("");
@@ -470,65 +490,34 @@ export default function Home() {
   };
 
   // Choose an outing (ella can mark as chosen)
-  const chooseOuting = (id: number) => {
-    set(child(ref(db, 'outings'), String(id)), { ...outings.find(o => o.id === id), status: "chosen" })
-      .then(() => {
-        setToastMsg("🎉 Salida elegida");
-        setTimeout(() => setToastMsg(""), 3000);
-        notifyPartner("🎉 Salida elegida", "Una salida ha sido seleccionada. ¡A prepararse!");
-      })
-      .catch((err) => console.error("Firebase choose outing error:", err));
+  const chooseOuting = async (id: number) => {
+    const { error } = await supabase
+      .from('outings')
+      .update({ status: 'chosen' })
+      .eq('id', id);
+    if (error) {
+      console.error("Supabase choose outing error:", error);
+    } else {
+      setToastMsg("🎉 Salida elegida");
+      setTimeout(() => setToastMsg(""), 3000);
+      notifyPartner("🎉 Salida elegida", "Una salida ha sido seleccionada. ¡A prepararse!");
+    }
   };
 
-  const deleteOuting = (id: number) => {
-    remove(child(ref(db, 'outings'), String(id)))
-      .catch((err) => console.error("Firebase remove outing error:", err));
+  const deleteOuting = async (id: number) => {
+    const { error } = await supabase.from('outings').delete().eq('id', id);
+    if (error) console.error("Supabase delete outing error:", error);
   };
 
-  // Request notification permission and register FCM token
+  // Request notification permission for browser notifications
   useEffect(() => {
     if (!currentUser) return;
     if (!("Notification" in window)) return;
 
-    const initFCM = async () => {
-      if (Notification.permission === "default") {
-        await Notification.requestPermission();
-      }
-      if (Notification.permission !== "granted") return;
-
-      const messaging = await getMessagingInstance();
-      if (!messaging) return;
-
-      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      if (!vapidKey) return;
-
-      try {
-        const token = await getToken(messaging, { vapidKey });
-        if (token) {
-          set(ref(db, `fcmTokens/${currentUser}`), token).catch(() => {});
-        }
-      } catch (err) {
-        console.error("FCM token error:", err);
-      }
-    };
-
-    initFCM();
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
   }, [currentUser]);
-
-  // Listen for foreground FCM messages
-  useEffect(() => {
-    const init = async () => {
-      const messaging = await getMessagingInstance();
-      if (!messaging) return;
-      onMessage(messaging, (payload) => {
-        const { title, body } = payload.notification || {};
-        if (title) {
-          new Notification(title, { body: body || "", icon: "/favicon.ico" });
-        }
-      });
-    };
-    init();
-  }, []);
 
   // Couple time delta state
   const [timeTogether, setTimeTogether] = useState<TimeDelta>({
@@ -1574,8 +1563,8 @@ export default function Home() {
                         {outing.location && (
                           <span className="salidas-detail">📍 {outing.location}</span>
                         )}
-                        {outing.when && (
-                          <span className="salidas-detail">🕐 {outing.when}</span>
+                        {outing.when_field && (
+                          <span className="salidas-detail">🕐 {outing.when_field}</span>
                         )}
                       </div>
                       <div className="salidas-card-actions">

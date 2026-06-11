@@ -1,0 +1,97 @@
+-- Ejecuta este SQL en el SQL Editor de tu proyecto Supabase
+
+-- Tabla: messages
+create table if not exists messages (
+  id bigint primary key,
+  text text not null,
+  author text not null,
+  author_name text not null default '',
+  date text not null default '',
+  time text not null default '',
+  created_at timestamptz not null default now()
+);
+
+alter table messages enable row level security;
+
+create policy "Anyone can read messages"
+  on messages for select using (true);
+
+create policy "Anyone can insert messages"
+  on messages for insert with check (true);
+
+create policy "Anyone can delete messages"
+  on messages for delete using (true);
+
+-- Tabla: memories
+create table if not exists memories (
+  id bigint primary key,
+  image_data text not null default '',
+  title text not null default '',
+  description text not null default '',
+  author text not null default '',
+  date text not null default '',
+  time text not null default '',
+  created_at timestamptz not null default now()
+);
+
+alter table memories enable row level security;
+
+create policy "Anyone can read memories"
+  on memories for select using (true);
+
+create policy "Anyone can insert memories"
+  on memories for insert with check (true);
+
+create policy "Anyone can delete memories"
+  on memories for delete using (true);
+
+-- Tabla: outings
+create table if not exists outings (
+  id bigint primary key,
+  proposer text not null default '',
+  proposer_name text not null default '',
+  title text not null default '',
+  description text not null default '',
+  location text not null default '',
+  when_field text not null default '',
+  status text not null default 'pending',
+  date text not null default '',
+  time text not null default '',
+  created_at timestamptz not null default now()
+);
+
+alter table outings enable row level security;
+
+create policy "Anyone can read outings"
+  on outings for select using (true);
+
+create policy "Anyone can insert outings"
+  on outings for insert with check (true);
+
+create policy "Anyone can update outings"
+  on outings for update using (true);
+
+create policy "Anyone can delete outings"
+  on outings for delete using (true);
+
+-- Tabla: fcm_tokens
+create table if not exists fcm_tokens (
+  user_id text primary key,
+  token text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+alter table fcm_tokens enable row level security;
+
+create policy "Anyone can read fcm_tokens"
+  on fcm_tokens for select using (true);
+
+create policy "Anyone can upsert fcm_tokens"
+  on fcm_tokens for insert with check (true);
+
+-- Enable realtime for all tables
+alter publication supabase_realtime add table messages;
+alter publication supabase_realtime add table memories;
+alter publication supabase_realtime add table outings;
+
+-- Storage bucket for memories (crear en Supabase Dashboard > Storage > Create bucket 'memories' con policy pública de lectura/escritura)
